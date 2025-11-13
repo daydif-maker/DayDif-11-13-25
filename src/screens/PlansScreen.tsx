@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { ScrollView } from 'react-native';
-import { Screen, Stack, Text, Card, Row } from '@ui';
-import { usePlansStore } from '@store';
+import { Screen, Stack, Text, Card, Row, ScreenHeader, Button } from '@ui';
+import { usePlansStore, useUserStateStore } from '@store';
 import { plansService } from '@services/api/plansService';
 import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +14,15 @@ type PlansScreenNavigationProp = NativeStackNavigationProp<PlansStackParamList, 
 export const PlansScreen: React.FC = () => {
   const navigation = useNavigation<PlansScreenNavigationProp>();
   const { learningHistory, kpis, updateKPIs, addHistoryEntry } = usePlansStore();
+  const { reset } = useUserStateStore();
+
+  const handleReset = async () => {
+    try {
+      await reset();
+    } catch (error) {
+      console.error('Failed to reset user state:', error);
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -57,22 +66,10 @@ export const PlansScreen: React.FC = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         <Stack gap="xl" padding="lg" paddingTop="xl">
           {/* Blinkist-style header */}
-          <Box>
-            <Text variant="heading1" marginBottom="xs">
-              Plans
-            </Text>
-            {/* Green underline matching Blinkist */}
-            <Box
-              width={40}
-              height={3}
-              backgroundColor="primary"
-              borderRadius="sm"
-              marginBottom="md"
-            />
-            <Text variant="bodySmall" color="textSecondary">
-              Track your learning progress and achievements
-            </Text>
-          </Box>
+          <ScreenHeader
+            title="Plans"
+            subtitle="Track your learning progress and achievements"
+          />
 
           {/* KPI Tiles - Enhanced Blinkist-style */}
           <Box>
@@ -137,7 +134,6 @@ export const PlansScreen: React.FC = () => {
                     <Text
                       variant="caption"
                       color={entry ? 'textInverse' : 'textTertiary'}
-                      style={{ fontWeight: entry ? '600' : '400' }}
                     >
                       {new Date(date).getDate()}
                     </Text>
@@ -145,6 +141,17 @@ export const PlansScreen: React.FC = () => {
                 </TouchableOpacity>
               ))}
             </Box>
+          </Box>
+
+          {/* Reset Button */}
+          <Box marginTop="xl" marginBottom="lg">
+            <Button
+              variant="outline"
+              onPress={handleReset}
+              hapticFeedback={true}
+            >
+              Reset User State
+            </Button>
           </Box>
         </Stack>
       </ScrollView>

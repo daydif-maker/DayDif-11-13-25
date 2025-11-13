@@ -29,3 +29,4 @@ export const getMockStreak = (): Streak => mockStreak;
 
 export const getMockWeeklyGoal = (): WeeklyGoal => mockWeeklyGoal;
 
+

@@ -5,9 +5,12 @@ import { ProgressBar } from './ProgressBar';
 import { useUIStore } from '@store';
 import { audioService } from '@services/audio/audioService';
 import { Box } from '@ui/primitives';
+import { Ionicons } from '@expo/vector-icons';
+import { useIconColor } from './hooks/useIconColor';
 
 export const AudioPlayer: React.FC = () => {
   const { audioState, playAudio, pauseAudio, setAudioState } = useUIStore();
+  const iconColorInverse = useIconColor('inverse');
 
   const handlePlayPause = () => {
     if (audioState.isPlaying) {
@@ -44,16 +47,18 @@ export const AudioPlayer: React.FC = () => {
       <Box flexDirection="row" alignItems="center" gap="md">
         <TouchableOpacity onPress={handlePlayPause}>
           <Box
-            width={40}
-            height={40}
+            width={48}
+            height={48}
             borderRadius="full"
             backgroundColor="primary"
             alignItems="center"
             justifyContent="center"
           >
-            <Text variant="body" color="textInverse">
-              {audioState.isPlaying ? '⏸' : '▶'}
-            </Text>
+            <Ionicons
+              name={audioState.isPlaying ? 'pause' : 'play'}
+              size={24}
+              color={iconColorInverse}
+            />
           </Box>
         </TouchableOpacity>
 

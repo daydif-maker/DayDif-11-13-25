@@ -1,43 +1,87 @@
 import React, { useEffect } from 'react';
 import { ScrollView } from 'react-native';
-import { Screen, Stack, Text, Card, Avatar, ProgressBar, Button } from '@ui';
-import { useLessonsStore } from '@store';
+import { Screen, Stack, Text, Card, Avatar, ProgressBar, Button, ScreenHeader } from '@ui';
+import { useLessonsStore, usePlansStore, useUserStore, useUserStateStore } from '@store';
 import { lessonService } from '@services/api/lessonService';
 import { plansService } from '@services/api/plansService';
-import { usePlansStore } from '@store';
-import { useUserStore } from '@store';
 import { useNavigation } from '@react-navigation/native';
 import { TodayStackParamList } from '@navigation/types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Box } from '@ui/primitives';
 import { Ionicons } from '@expo/vector-icons';
+import { useIconColor } from '@ui/hooks/useIconColor';
+import { OnboardingScreen } from './today/OnboardingScreen';
+import { CreatePlanEmptyState } from './today/CreatePlanEmptyState';
+import { GenerationScreen } from './today/GenerationScreen';
+import { RegenerationScreen } from './today/RegenerationScreen';
+import { OfflineScreen } from './today/OfflineScreen';
+import { ErrorScreen } from './today/ErrorScreen';
 
 type TodayScreenNavigationProp = NativeStackNavigationProp<TodayStackParamList, 'Today'>;
 
-export const TodayScreen: React.FC = () => {
+// Main content component - rendered when isActive is true
+const TodayScreenContent: React.FC = () => {
   const navigation = useNavigation<TodayScreenNavigationProp>();
   const { dailyLesson, nextUpQueue, setDailyLesson, addToQueue } = useLessonsStore();
-  const { weeklyGoal, getWeeklyProgress } = usePlansStore();
+  const { weeklyGoal, getWeeklyProgress, learningHistory } = usePlansStore();
   const { userProfile } = useUserStore();
+  const {
+    setTodayLesson,
+    setHistory,
+    setLessons,
+    setError,
+    setIsGenerating,
+  } = useUserStateStore();
+  const iconColorSecondary = useIconColor('secondary');
+
+  // Sync state between slices
+  useEffect(() => {
+    // Sync todayLesson with dailyLesson
+    setTodayLesson(dailyLesson);
+    
+    // Sync history with learningHistory
+    setHistory(learningHistory);
+    
+    // Sync lessons (combine dailyLesson and nextUpQueue)
+    const allLessons = dailyLesson
+      ? [dailyLesson, ...nextUpQueue]
+      : nextUpQueue.length > 0
+      ? nextUpQueue
+      : null;
+    setLessons(allLessons);
+  }, [dailyLesson, nextUpQueue, learningHistory, setTodayLesson, setHistory, setLessons]);
 
   useEffect(() => {
+    // Only load data if we don't already have a daily lesson
+    // This prevents overwriting lessons that were just set (e.g., from CreatePlanScreen)
+    if (dailyLesson) {
+      return;
+    }
+
     const loadData = async () => {
       try {
+        setIsGenerating(true);
+        setError(null);
+
         const lesson = await lessonService.getDailyLesson();
         setDailyLesson(lesson);
 
         const queue = await lessonService.getLessonQueue();
         queue.forEach(l => addToQueue(l));
 
-        const goal = await plansService.getStreakData();
+        await plansService.getStreakData();
         // Load weekly goal if needed
+        
+        setIsGenerating(false);
       } catch (error) {
         console.error('Failed to load today screen data:', error);
+        setIsGenerating(false);
+        setError(error instanceof Error ? error.message : 'Failed to load lessons');
       }
     };
 
     loadData();
-  }, []);
+  }, [dailyLesson, setDailyLesson, addToQueue, setIsGenerating, setError]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -56,20 +100,10 @@ export const TodayScreen: React.FC = () => {
           <Box>
             <Box flexDirection="row" justifyContent="space-between" alignItems="flex-start" marginBottom="sm">
               <Box flex={1}>
-                <Text variant="heading1" marginBottom="xs">
-                  For You
-                </Text>
-                {/* Green underline matching Blinkist */}
-                <Box
-                  width={40}
-                  height={3}
-                  backgroundColor="primary"
-                  borderRadius="sm"
-                  marginBottom="md"
-                />
+                <ScreenHeader title="For You" />
               </Box>
               <Box marginTop="xs">
-                <Ionicons name="settings-outline" size={24} color="#616161" />
+                <Ionicons name="settings-outline" size={24} color={iconColorSecondary} />
               </Box>
             </Box>
             
@@ -141,7 +175,7 @@ export const TodayScreen: React.FC = () => {
                 Continue your learning journey
               </Text>
               <Stack gap="md">
-                {nextUpQueue.map(lesson => (
+                {nextUpQueue.map((lesson) => (
                   <Card
                     key={lesson.id}
                     variant="outlined"
@@ -150,7 +184,7 @@ export const TodayScreen: React.FC = () => {
                     }}
                     padding="md"
                   >
-                    <Text variant="body" marginBottom="xs" style={{ fontWeight: '600' }}>
+                    <Text variant="heading4" marginBottom="xs">
                       {lesson.title}
                     </Text>
                     <Text variant="caption" color="textTertiary">
@@ -167,3 +201,42 @@ export const TodayScreen: React.FC = () => {
   );
 };
 
+// Main TodayScreen component with state-aware routing
+export const TodayScreen: React.FC = () => {
+  const {
+    isFirstTime,
+    isMissingPlan,
+    isGeneratingLessons,
+    isReturning,
+    isOfflineMode,
+    isError,
+  } = useUserStateStore();
+
+  // State-aware routing - render appropriate screen based on user state
+  if (isFirstTime()) {
+    return <OnboardingScreen />;
+  }
+
+  if (isMissingPlan()) {
+    return <CreatePlanEmptyState />;
+  }
+
+  if (isGeneratingLessons()) {
+    return <GenerationScreen />;
+  }
+
+  if (isReturning()) {
+    return <RegenerationScreen />;
+  }
+
+  if (isOfflineMode()) {
+    return <OfflineScreen />;
+  }
+
+  if (isError()) {
+    return <ErrorScreen />;
+  }
+
+  // Default: render full Today experience when isActive is true
+  return <TodayScreenContent />;
+};

@@ -9,6 +9,7 @@ interface LessonsState {
   setDailyLesson: (lesson: Lesson | null) => void;
   addToQueue: (lesson: Lesson) => void;
   removeFromQueue: (lessonId: string) => void;
+  clearQueue: () => void;
   markComplete: (lessonId: string) => void;
   setCurrentLesson: (lesson: Lesson | null) => void;
   getDailyLesson: () => Lesson | null;
@@ -34,6 +35,7 @@ export const useLessonsStore = create<LessonsState>(set => ({
     set(state => ({
       nextUpQueue: state.nextUpQueue.filter(l => l.id !== lessonId),
     })),
+  clearQueue: () => set({ nextUpQueue: [] }),
   markComplete: lessonId =>
     set(state => {
       const lesson = state.dailyLesson?.id === lessonId
@@ -74,4 +76,5 @@ export const useLessonsStore = create<LessonsState>(set => ({
     return state.completedLessons.length;
   },
 }));
+
 

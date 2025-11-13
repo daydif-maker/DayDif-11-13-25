@@ -42,6 +42,28 @@ export interface LearningHistoryEntry {
   lessons: Lesson[];
 }
 
+// Type alias for clarity
+export type HistoryEntry = LearningHistoryEntry;
+
+export interface Plan {
+  id: string;
+  name: string;
+  goal: WeeklyGoal;
+  topics: string[];
+  schedule: {
+    frequency: 'daily' | 'weekly';
+    daysOfWeek?: number[]; // 0-6, Sunday-Saturday
+    timeOfDay?: string; // HH:mm format
+  };
+  createdAt: string;
+  isActive: boolean;
+  // New fields for basic plan creation
+  topicPrompt?: string; // The exact prompt fed into the LLM
+  daysPerWeek?: number; // 2-5 days per week
+  lessonDuration?: '8-10' | '10-15' | '15-20'; // Duration in minutes
+  lessonCount?: number; // Derived: daysPerWeek * 2
+}
+
 export interface WeeklyGoal {
   targetLessons: number;
   targetMinutes: number;
@@ -72,4 +94,5 @@ export interface AudioState {
 }
 
 export type ModalType = 'settings' | 'goal' | 'avatar' | null;
+
 

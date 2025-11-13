@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, TouchableOpacity } from 'react-native';
-import { Screen, Stack, Text, Card, Button } from '@ui';
+import { Screen, Stack, Text, Card, Button, LoadingState } from '@ui';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Box } from '@ui/primitives';
 import { Ionicons } from '@expo/vector-icons';
 import { lessonService } from '@services/api/lessonService';
 import { Lesson } from '@store/types';
+import { useIconColor } from '@ui/hooks/useIconColor';
 
 export const LessonDetailScreen: React.FC = () => {
   const route = useRoute();
@@ -13,6 +14,11 @@ export const LessonDetailScreen: React.FC = () => {
   const { lessonId } = route.params as { lessonId: string };
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [activeTab, setActiveTab] = useState<'read' | 'play'>('read');
+  const iconColorPrimary = useIconColor('primary');
+  const iconColorSecondary = useIconColor('secondary');
+  const iconColorTertiary = useIconColor('tertiary');
+  const iconColorNavActive = useIconColor('navActive');
+  const iconColorNavInactive = useIconColor('navInactive');
 
   useEffect(() => {
     const loadLesson = async () => {
@@ -29,9 +35,7 @@ export const LessonDetailScreen: React.FC = () => {
   if (!lesson) {
     return (
       <Screen>
-        <Box padding="lg">
-          <Text variant="body">Loading...</Text>
-        </Box>
+        <LoadingState message="Loading lesson..." />
       </Screen>
     );
   }
@@ -50,18 +54,23 @@ export const LessonDetailScreen: React.FC = () => {
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={{ marginRight: 16 }}
         >
-          <Ionicons name="arrow-back" size={24} color="#212121" />
+          <Box marginRight="md">
+            <Ionicons name="arrow-back" size={24} color={iconColorPrimary} />
+          </Box>
         </TouchableOpacity>
         <Text variant="heading3" flex={1} numberOfLines={1}>
           {lesson.title}
         </Text>
-        <TouchableOpacity style={{ marginLeft: 8 }}>
-          <Ionicons name="bookmark-outline" size={24} color="#616161" />
+        <TouchableOpacity>
+          <Box marginLeft="xs">
+            <Ionicons name="bookmark-outline" size={24} color={iconColorSecondary} />
+          </Box>
         </TouchableOpacity>
-        <TouchableOpacity style={{ marginLeft: 8 }}>
-          <Ionicons name="ellipsis-horizontal" size={24} color="#616161" />
+        <TouchableOpacity>
+          <Box marginLeft="xs">
+            <Ionicons name="ellipsis-horizontal" size={24} color={iconColorSecondary} />
+          </Box>
         </TouchableOpacity>
       </Box>
 
@@ -74,42 +83,44 @@ export const LessonDetailScreen: React.FC = () => {
       >
         <TouchableOpacity
           onPress={() => setActiveTab('read')}
-          style={{ flex: 1, alignItems: 'center', paddingVertical: 8 }}
         >
-          <Box flexDirection="row" alignItems="center">
-            <Ionicons
-              name="document-text-outline"
-              size={20}
-              color={activeTab === 'read' ? '#00A86B' : '#FFFFFF'}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              variant="bodySmall"
-              color={activeTab === 'read' ? 'navActive' : 'navInactive'}
-              style={{ fontWeight: activeTab === 'read' ? '600' : '400' }}
-            >
-              Read Lesson
-            </Text>
+          <Box flex={1} alignItems="center" paddingVertical="xs">
+            <Box flexDirection="row" alignItems="center">
+              <Box marginRight="xs">
+                <Ionicons
+                  name="document-text-outline"
+                  size={20}
+                  color={activeTab === 'read' ? iconColorNavActive : iconColorNavInactive}
+                />
+              </Box>
+              <Text
+                variant="bodySmall"
+                color={activeTab === 'read' ? 'navActive' : 'navInactive'}
+              >
+                Read Lesson
+              </Text>
+            </Box>
           </Box>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setActiveTab('play')}
-          style={{ flex: 1, alignItems: 'center', paddingVertical: 8 }}
         >
-          <Box flexDirection="row" alignItems="center">
-            <Ionicons
-              name="headset-outline"
-              size={20}
-              color={activeTab === 'play' ? '#00A86B' : '#FFFFFF'}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              variant="bodySmall"
-              color={activeTab === 'play' ? 'navActive' : 'navInactive'}
-              style={{ fontWeight: activeTab === 'play' ? '600' : '400' }}
-            >
-              Play Lesson
-            </Text>
+          <Box flex={1} alignItems="center" paddingVertical="xs">
+            <Box flexDirection="row" alignItems="center">
+              <Box marginRight="xs">
+                <Ionicons
+                  name="headset-outline"
+                  size={20}
+                  color={activeTab === 'play' ? iconColorNavActive : iconColorNavInactive}
+                />
+              </Box>
+              <Text
+                variant="bodySmall"
+                color={activeTab === 'play' ? 'navActive' : 'navInactive'}
+              >
+                Play Lesson
+              </Text>
+            </Box>
           </Box>
         </TouchableOpacity>
       </Box>
@@ -128,19 +139,19 @@ export const LessonDetailScreen: React.FC = () => {
             {/* Metadata row */}
             <Box flexDirection="row" alignItems="center" gap="md">
               <Box flexDirection="row" alignItems="center">
-                <Ionicons name="time-outline" size={16} color="#757575" />
+                <Ionicons name="time-outline" size={16} color={iconColorTertiary} />
                 <Text variant="caption" color="textTertiary" marginLeft="xs">
                   {lesson.duration} min
                 </Text>
               </Box>
               <Box flexDirection="row" alignItems="center">
-                <Ionicons name="bulb-outline" size={16} color="#757575" />
+                <Ionicons name="bulb-outline" size={16} color={iconColorTertiary} />
                 <Text variant="caption" color="textTertiary" marginLeft="xs">
                   {lesson.difficulty}
                 </Text>
               </Box>
               <Box flexDirection="row" alignItems="center">
-                <Ionicons name="folder-outline" size={16} color="#757575" />
+                <Ionicons name="folder-outline" size={16} color={iconColorTertiary} />
                 <Text variant="caption" color="textTertiary" marginLeft="xs">
                   {lesson.category}
                 </Text>

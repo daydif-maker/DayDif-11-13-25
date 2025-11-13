@@ -4,6 +4,7 @@ import { BoxProps } from '@shopify/restyle';
 import { Theme } from '@designSystem/theme';
 import { Box } from '@ui/primitives';
 import { Text } from './Text';
+import { useTheme } from '@designSystem/ThemeProvider';
 import * as Haptics from 'expo-haptics';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -26,6 +27,8 @@ export const Button: React.FC<ButtonProps> = ({
   hapticFeedback = true,
   ...props
 }) => {
+  const { theme } = useTheme();
+
   const handlePress = () => {
     if (disabled || loading) return;
     if (hapticFeedback) {
@@ -69,6 +72,13 @@ export const Button: React.FC<ButtonProps> = ({
     return 'textInverse';
   };
 
+  const getLoadingIndicatorColor = (): string => {
+    if (variant === 'outline' || variant === 'ghost') {
+      return theme.colors.primary;
+    }
+    return theme.colors.textInverse;
+  };
+
   return (
     <TouchableOpacity
       onPress={handlePress}
@@ -89,7 +99,7 @@ export const Button: React.FC<ButtonProps> = ({
         {loading ? (
           <ActivityIndicator
             size="small"
-            color={variant === 'outline' || variant === 'ghost' ? undefined : '#FFFFFF'}
+            color={getLoadingIndicatorColor()}
           />
         ) : (
           <Text

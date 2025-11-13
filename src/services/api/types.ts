@@ -1,4 +1,4 @@
-import { Lesson, UserProfile, UserPreferences, LearningHistoryEntry, KPIs, Streak, WeeklyGoal } from '@store/types';
+import { Lesson, UserProfile, UserPreferences, LearningHistoryEntry, KPIs, Streak, WeeklyGoal, Plan } from '@store/types';
 
 // API Response wrappers
 export interface ApiResponse<T> {
@@ -75,4 +75,16 @@ export interface UpdateWeeklyGoalResponse {
 export interface GetStreakDataResponse {
   streak: Streak;
 }
+
+export interface CreatePlanRequest {
+  topicPrompt: string;
+  daysPerWeek: number;
+  lessonDuration: '8-10' | '10-15' | '15-20';
+  lessonCount: number;
+}
+
+export interface CreatePlanResponse {
+  plan: Plan;
+}
+
 

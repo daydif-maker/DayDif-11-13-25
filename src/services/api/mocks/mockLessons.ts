@@ -44,3 +44,70 @@ export const getMockLessonById = (id: string): Lesson | null => {
   return mockLessons.find(lesson => lesson.id === id) || null;
 };
 
+/**
+ * Generate mock lessons based on plan customizations
+ */
+export const generateMockLessonsForPlan = (
+  topicPrompt: string,
+  lessonCount: number,
+  lessonDuration: '8-10' | '10-15' | '15-20'
+): Lesson[] => {
+  // Extract topic keywords from prompt for better lesson titles
+  const topicKeywords = topicPrompt
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(word => word.length > 3)
+    .slice(0, 3);
+  
+  const topicName = topicKeywords.length > 0 
+    ? topicKeywords[0].charAt(0).toUpperCase() + topicKeywords[0].slice(1)
+    : 'Learning';
+
+  // Calculate duration based on range (use midpoint)
+  const durationMap = {
+    '8-10': 9,
+    '10-15': 12,
+    '15-20': 17,
+  };
+  const duration = durationMap[lessonDuration];
+
+  // Generate lesson titles based on topic
+  const lessonTitles = [
+    `Introduction to ${topicName}`,
+    `Fundamentals of ${topicName}`,
+    `Advanced Concepts in ${topicName}`,
+    `Practical Applications of ${topicName}`,
+    `Deep Dive into ${topicName}`,
+    `Mastering ${topicName}`,
+    `Exploring ${topicName}`,
+    `Understanding ${topicName}`,
+    `Getting Started with ${topicName}`,
+    `Expert Insights on ${topicName}`,
+  ];
+
+  const difficulties: Array<'beginner' | 'intermediate' | 'advanced'> = ['beginner', 'intermediate', 'advanced'];
+  const categories = ['Science', 'Technology', 'Business', 'Psychology', 'Education', 'Philosophy'];
+
+  const lessons: Lesson[] = [];
+  
+  for (let i = 0; i < lessonCount; i++) {
+    const titleIndex = i % lessonTitles.length;
+    const difficultyIndex = Math.floor(i / 3) % difficulties.length;
+    
+    lessons.push({
+      id: `lesson-${Date.now()}-${i}`,
+      title: lessonTitles[titleIndex],
+      description: `Learn about ${topicPrompt.toLowerCase()} - Lesson ${i + 1} of ${lessonCount}`,
+      content: `This lesson covers important aspects of ${topicPrompt.toLowerCase()}. You'll explore key concepts, practical examples, and real-world applications. This is part of your personalized learning plan focused on ${topicPrompt}.`,
+      duration,
+      category: categories[i % categories.length],
+      difficulty: difficulties[difficultyIndex],
+      completed: false,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  return lessons;
+};
+
+

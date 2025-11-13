@@ -3,6 +3,7 @@ import { TextInput, TextInputProps } from 'react-native';
 import { Text } from './Text';
 import { useController, Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Box } from '@ui/primitives';
+import { useTheme } from '@designSystem/ThemeProvider';
 
 type InputProps<T extends FieldValues> = Omit<TextInputProps, 'style'> & {
   label?: string;
@@ -20,6 +21,7 @@ export function Input<T extends FieldValues>({
   helperText,
   ...inputProps
 }: InputProps<T>) {
+  const { theme } = useTheme();
   const {
     field: { onChange, onBlur, value },
     fieldState: { invalid },
@@ -50,10 +52,10 @@ export function Input<T extends FieldValues>({
           value={value as string}
           onChangeText={onChange}
           onBlur={onBlur}
-          placeholderTextColor="#9E9E9E"
+          placeholderTextColor={theme.colors.textTertiary}
           style={{
-            fontSize: 16,
-            color: '#212121',
+            fontSize: theme.typography.fontSize16,
+            color: theme.colors.textPrimary,
             padding: 0,
           }}
           {...inputProps}

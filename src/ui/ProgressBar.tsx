@@ -6,6 +6,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Theme } from '@designSystem/theme';
 import { Box } from '@ui/primitives';
+import { useTheme } from '@designSystem/ThemeProvider';
 
 type ProgressBarProps = {
   progress: number; // 0-100
@@ -20,6 +21,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   color = 'primary',
   backgroundColor = 'backgroundSecondary',
 }) => {
+  const { theme } = useTheme();
   const animatedProgress = useSharedValue(0);
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         style={[
           {
             height: '100%',
-            backgroundColor: '#627D98', // Using token color value directly for animation
+            backgroundColor: theme.colors[color],
           },
           animatedStyle,
         ]}

@@ -89,15 +89,13 @@ export const GlassTabBar: React.FC<BottomTabBarProps> = ({
               testID={options.tabBarTestID}
               onPress={onPress}
               onLongPress={onLongPress}
-              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
             >
-              <Box alignItems="center" justifyContent="center">
+              <Box flex={1} alignItems="center" justifyContent="center">
                 {getTabIcon(route.name, isFocused, theme.colors.navActive, theme.colors.navInactive)}
                 <Text
                   variant="caption"
                   color={textColor}
                   marginTop="xs"
-                  style={{ fontWeight: isFocused ? '600' : '400' }}
                 >
                   {options.title || route.name}
                 </Text>

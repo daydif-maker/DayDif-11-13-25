@@ -6,6 +6,8 @@ import {
   UpdateWeeklyGoalRequest,
   UpdateWeeklyGoalResponse,
   GetStreakDataResponse,
+  CreatePlanRequest,
+  CreatePlanResponse,
   ApiResponse,
 } from './types';
 import {
@@ -13,13 +15,14 @@ import {
   KPIs,
   WeeklyGoal,
   Streak,
+  Plan,
 } from '@store/types';
 import {
-  getMockHistory,
   getMockKPIs,
   getMockStreak,
   getMockWeeklyGoal,
 } from './mocks/mockKPIs';
+import { getMockHistory } from './mocks/mockHistory';
 
 const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'false';
 
@@ -107,5 +110,50 @@ export const plansService = {
       throw error;
     }
   },
+
+  /**
+   * Create a new learning plan
+   */
+  async createPlan(data: CreatePlanRequest): Promise<Plan> {
+    if (USE_MOCK_DATA) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // Generate a mock plan
+      const mockPlan: Plan = {
+        id: `plan-${Date.now()}`,
+        name: `Learning Plan: ${data.topicPrompt.substring(0, 30)}...`,
+        goal: {
+          targetLessons: data.lessonCount,
+          targetMinutes: data.lessonCount * (data.lessonDuration === '8-10' ? 9 : data.lessonDuration === '10-15' ? 12.5 : 17.5),
+          currentLessons: 0,
+          currentMinutes: 0,
+          weekStart: new Date().toISOString().split('T')[0],
+        },
+        topics: [data.topicPrompt],
+        schedule: {
+          frequency: 'weekly',
+          daysOfWeek: [],
+        },
+        createdAt: new Date().toISOString(),
+        isActive: true,
+        topicPrompt: data.topicPrompt,
+        daysPerWeek: data.daysPerWeek,
+        lessonDuration: data.lessonDuration,
+        lessonCount: data.lessonCount,
+      };
+      return mockPlan;
+    }
+
+    try {
+      const response = await apiClient.post<ApiResponse<CreatePlanResponse>>(
+        '/plans',
+        data
+      );
+      return response.data.data.plan;
+    } catch (error) {
+      console.error('Failed to create plan:', error);
+      throw error;
+    }
+  },
 };
+
 

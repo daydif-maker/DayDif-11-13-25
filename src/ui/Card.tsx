@@ -3,6 +3,7 @@ import { TouchableOpacity } from 'react-native';
 import { BoxProps } from '@shopify/restyle';
 import { Theme } from '@designSystem/theme';
 import { Box } from '@ui/primitives';
+import { useTheme } from '@designSystem/ThemeProvider';
 import * as Haptics from 'expo-haptics';
 
 type CardVariant = 'elevated' | 'flat' | 'outlined' | 'featured';
@@ -24,11 +25,13 @@ export const Card: React.FC<CardProps> = ({
   backgroundColor = 'surface',
   ...props
 }) => {
+  const { theme } = useTheme();
+
   const getVariantStyles = (): Partial<BoxProps<Theme>> => {
     switch (variant) {
       case 'elevated':
         return {
-          // Use theme shadows
+          // Shadow applied via style prop using theme tokens
         };
       case 'outlined':
         return {
@@ -37,7 +40,7 @@ export const Card: React.FC<CardProps> = ({
         };
       case 'featured':
         return {
-          // Use theme shadows
+          // Shadow applied via style prop using theme tokens
         };
       case 'flat':
       default:
@@ -48,23 +51,11 @@ export const Card: React.FC<CardProps> = ({
   const getShadowStyle = () => {
     switch (variant) {
       case 'elevated':
-        return {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.08,
-          shadowRadius: 3,
-          elevation: 2,
-        };
+        return theme.shadows.md;
       case 'featured':
-        return {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.12,
-          shadowRadius: 6,
-          elevation: 4,
-        };
+        return theme.shadows.lg;
       default:
-        return {};
+        return theme.shadows.none;
     }
   };
 

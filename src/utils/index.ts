@@ -16,3 +16,4 @@ export const formatTime = (minutes: number): string => {
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 };
 
+

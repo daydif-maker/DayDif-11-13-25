@@ -4,6 +4,7 @@ export type TodayStackParamList = {
   Today: undefined;
   LessonDetail: { lessonId: string };
   AvatarSettings: undefined;
+  CreatePlan: undefined;
 };
 
 export type PlansStackParamList = {
@@ -21,4 +22,5 @@ declare global {
     interface RootParamList extends RootTabParamList {}
   }
 }
+
 
