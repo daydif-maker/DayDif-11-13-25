@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import { ScrollView } from 'react-native';
 import { Screen, Stack, Text, Card, Row, ScreenHeader, Button } from '@ui';
-import { usePlansStore, useUserStateStore } from '@store';
-import { plansService } from '@services/api/plansService';
+import { usePlansStore, useUserStateStore, useAuthStore } from '@store';
 import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { PlansStackParamList } from '@navigation/types';
@@ -13,7 +12,8 @@ type PlansScreenNavigationProp = NativeStackNavigationProp<PlansStackParamList, 
 
 export const PlansScreen: React.FC = () => {
   const navigation = useNavigation<PlansScreenNavigationProp>();
-  const { learningHistory, kpis, updateKPIs, addHistoryEntry } = usePlansStore();
+  const { user } = useAuthStore();
+  const { learningHistory, kpis, addHistoryEntry, loadKPIs, loadLearningHistory } = usePlansStore();
   const { reset } = useUserStateStore();
 
   const handleReset = async () => {
@@ -25,25 +25,26 @@ export const PlansScreen: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!user?.id) return;
+
     const loadData = async () => {
       try {
-        const kpisData = await plansService.getKPIs();
-        updateKPIs(kpisData);
+        // Load KPIs and history using store actions
+        await loadKPIs(user.id);
 
         // Load last 30 days of history
         const endDate = new Date().toISOString().split('T')[0];
         const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
           .toISOString()
           .split('T')[0];
-        const history = await plansService.getLearningHistory(startDate, endDate);
-        history.forEach(entry => addHistoryEntry(entry));
+        await loadLearningHistory(user.id, startDate, endDate);
       } catch (error) {
         console.error('Failed to load plans screen data:', error);
       }
     };
 
     loadData();
-  }, []);
+  }, [user?.id, loadKPIs, loadLearningHistory]);
 
   // Generate calendar grid (simplified - last 30 days)
   const generateCalendarDays = () => {

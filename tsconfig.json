@@ -43,6 +43,12 @@
       ],
       "@constants/*": [
         "./src/constants/*"
+      ],
+      "@lib/*": [
+        "./src/lib/*"
+      ],
+      "@hooks/*": [
+        "./src/hooks/*"
       ]
     }
   },

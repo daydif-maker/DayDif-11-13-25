@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit",
     "tokens:scan": "node scripts/check-tokens.js",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "setup:supabase": "node scripts/setup-supabase.js",
+    "test:supabase": "node scripts/test-supabase.js",
+    "verify:supabase": "node scripts/verify-setup.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.0",
@@ -21,11 +24,13 @@
     "@react-navigation/native": "^6.1.0",
     "@react-navigation/native-stack": "^6.9.0",
     "@shopify/restyle": "^2.4.0",
+    "@supabase/supabase-js": "^2.39.0",
     "axios": "^1.6.0",
     "expo": "~51.0.0",
     "expo-blur": "~13.0.0",
     "expo-haptics": "~13.0.0",
     "expo-linear-gradient": "~13.0.0",
+    "expo-secure-store": "~13.0.0",
     "expo-status-bar": "~1.12.1",
     "react": "18.2.0",
     "react-hook-form": "^7.49.0",

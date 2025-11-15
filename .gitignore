@@ -62,4 +62,6 @@ coverage/
 # TypeScript
 *.tsbuildinfo
 
+# Supabase local metadata
+supabase/.temp/
 

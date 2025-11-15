@@ -1,9 +1,7 @@
 import React, { useEffect } from 'react';
 import { ScrollView } from 'react-native';
 import { Screen, Stack, Text, Card, Avatar, ProgressBar, Button, ScreenHeader } from '@ui';
-import { useLessonsStore, usePlansStore, useUserStore, useUserStateStore } from '@store';
-import { lessonService } from '@services/api/lessonService';
-import { plansService } from '@services/api/plansService';
+import { useUserStateStore } from '@store';
 import { useNavigation } from '@react-navigation/native';
 import { TodayStackParamList } from '@navigation/types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,81 +14,34 @@ import { GenerationScreen } from './today/GenerationScreen';
 import { RegenerationScreen } from './today/RegenerationScreen';
 import { OfflineScreen } from './today/OfflineScreen';
 import { ErrorScreen } from './today/ErrorScreen';
+import { useTodayScreen } from '@hooks/useTodayScreen';
 
 type TodayScreenNavigationProp = NativeStackNavigationProp<TodayStackParamList, 'Today'>;
 
 // Main content component - rendered when isActive is true
 const TodayScreenContent: React.FC = () => {
   const navigation = useNavigation<TodayScreenNavigationProp>();
-  const { dailyLesson, nextUpQueue, setDailyLesson, addToQueue } = useLessonsStore();
-  const { weeklyGoal, getWeeklyProgress, learningHistory } = usePlansStore();
-  const { userProfile } = useUserStore();
   const {
-    setTodayLesson,
-    setHistory,
-    setLessons,
-    setError,
-    setIsGenerating,
-  } = useUserStateStore();
+    greeting,
+    userName,
+    todayLesson,
+    nextUp,
+    weeklyProgress,
+    isLoading,
+  } = useTodayScreen();
   const iconColorSecondary = useIconColor('secondary');
+  const { setTodayLesson, setHistory, setLessons } = useUserStateStore();
 
-  // Sync state between slices
+  // Sync state between slices for backward compatibility
   useEffect(() => {
-    // Sync todayLesson with dailyLesson
-    setTodayLesson(dailyLesson);
-    
-    // Sync history with learningHistory
-    setHistory(learningHistory);
-    
-    // Sync lessons (combine dailyLesson and nextUpQueue)
-    const allLessons = dailyLesson
-      ? [dailyLesson, ...nextUpQueue]
-      : nextUpQueue.length > 0
-      ? nextUpQueue
-      : null;
-    setLessons(allLessons);
-  }, [dailyLesson, nextUpQueue, learningHistory, setTodayLesson, setHistory, setLessons]);
-
-  useEffect(() => {
-    // Only load data if we don't already have a daily lesson
-    // This prevents overwriting lessons that were just set (e.g., from CreatePlanScreen)
-    if (dailyLesson) {
-      return;
+    if (todayLesson) {
+      setTodayLesson(todayLesson);
     }
-
-    const loadData = async () => {
-      try {
-        setIsGenerating(true);
-        setError(null);
-
-        const lesson = await lessonService.getDailyLesson();
-        setDailyLesson(lesson);
-
-        const queue = await lessonService.getLessonQueue();
-        queue.forEach(l => addToQueue(l));
-
-        await plansService.getStreakData();
-        // Load weekly goal if needed
-        
-        setIsGenerating(false);
-      } catch (error) {
-        console.error('Failed to load today screen data:', error);
-        setIsGenerating(false);
-        setError(error instanceof Error ? error.message : 'Failed to load lessons');
-      }
-    };
-
-    loadData();
-  }, [dailyLesson, setDailyLesson, addToQueue, setIsGenerating, setError]);
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  };
-
-  const progress = getWeeklyProgress();
+    if (nextUp) {
+      const allLessons = todayLesson ? [todayLesson, ...nextUp] : nextUp;
+      setLessons(allLessons);
+    }
+  }, [todayLesson, nextUp, setTodayLesson, setLessons]);
 
   return (
     <Screen>
@@ -111,31 +62,31 @@ const TodayScreenContent: React.FC = () => {
             <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="lg">
               <Box>
                 <Text variant="heading3" marginBottom="xs">
-                  {getGreeting()}
+                  {greeting}
                 </Text>
                 <Text variant="bodySmall" color="textSecondary">
-                  {userProfile?.name || 'Ready to learn?'}
+                  {userName || 'Ready to learn?'}
                 </Text>
               </Box>
-              <Avatar name={userProfile?.name} size="md" />
+              <Avatar name={userName || undefined} size="md" />
             </Box>
           </Box>
 
           {/* Weekly goal progress - Blinkist-style card */}
-          {weeklyGoal && (
+          {weeklyProgress.lessons > 0 && (
             <Card variant="elevated" padding="lg">
               <Text variant="heading4" marginBottom="sm">
                 Weekly Goal
               </Text>
               <Text variant="bodySmall" color="textSecondary" marginBottom="md">
-                {progress.lessons} of {weeklyGoal.targetLessons} lessons completed
+                {weeklyProgress.lessons} lessons completed
               </Text>
-              <ProgressBar progress={progress.percentage} />
+              <ProgressBar progress={weeklyProgress.percentage} />
             </Card>
           )}
 
           {/* Daily lesson - Featured card with Blinkist styling */}
-          {dailyLesson && (
+          {todayLesson && (
             <Box>
               <Text variant="heading3" marginBottom="sm">
                 Today's Lesson
@@ -143,20 +94,20 @@ const TodayScreenContent: React.FC = () => {
               <Card
                 variant="featured"
                 onPress={() => {
-                  navigation.navigate('LessonDetail', { lessonId: dailyLesson.id });
+                  navigation.navigate('LessonDetail', { lessonId: todayLesson.id });
                 }}
                 padding="lg"
               >
                 <Text variant="heading2" marginBottom="sm">
-                  {dailyLesson.title}
+                  {todayLesson.title}
                 </Text>
                 <Text variant="body" color="textSecondary" marginBottom="lg">
-                  {dailyLesson.description}
+                  {todayLesson.description}
                 </Text>
                 <Button
                   variant="primary"
                   onPress={() => {
-                    navigation.navigate('LessonDetail', { lessonId: dailyLesson.id });
+                    navigation.navigate('LessonDetail', { lessonId: todayLesson.id });
                   }}
                 >
                   Start Learning
@@ -166,7 +117,7 @@ const TodayScreenContent: React.FC = () => {
           )}
 
           {/* Next Up queue - Blinkist-style section */}
-          {nextUpQueue.length > 0 && (
+          {nextUp && nextUp.length > 0 && (
             <Box>
               <Text variant="heading3" marginBottom="xs">
                 Next Up
@@ -175,7 +126,7 @@ const TodayScreenContent: React.FC = () => {
                 Continue your learning journey
               </Text>
               <Stack gap="md">
-                {nextUpQueue.map((lesson) => (
+                {nextUp.map((lesson) => (
                   <Card
                     key={lesson.id}
                     variant="outlined"

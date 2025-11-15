@@ -1,0 +1,93 @@
+import { useEffect, useMemo } from 'react';
+import { usePlansStore } from '@store';
+import { useUserStore } from '@store';
+import { useAuthStore } from '@store';
+import { lessonService } from '@services/api/lessonService';
+import { useLessonsStore } from '@store';
+
+export interface TodayScreenData {
+  greeting: string;
+  userName: string | null;
+  todayLesson: ReturnType<typeof useLessonsStore>['dailyLesson'];
+  nextUp: ReturnType<typeof useLessonsStore>['nextUpQueue'];
+  weeklyProgress: ReturnType<typeof usePlansStore>['getWeeklyProgress'];
+  isLoading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
+export const useTodayScreen = (): TodayScreenData => {
+  const { user } = useAuthStore();
+  const { userProfile } = useUserStore();
+  const {
+    todayLesson,
+    weeklyGoal,
+    getWeeklyProgress,
+    isLoading,
+    error,
+    loadTodayLesson,
+    loadWeeklyProgress,
+    refreshAll,
+  } = usePlansStore();
+  const { dailyLesson, nextUpQueue, setDailyLesson, addToQueue } = useLessonsStore();
+
+  const userId = user?.id;
+
+  // Get greeting based on time of day
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }, []);
+
+  // Load data when userId is available
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          loadTodayLesson(userId),
+          loadWeeklyProgress(userId),
+        ]);
+
+        // Also load lesson queue
+        const queue = await lessonService.getLessonQueue(userId);
+        queue.forEach(l => addToQueue(l));
+      } catch (err) {
+        console.error('Failed to load today screen data:', err);
+      }
+    };
+
+    loadData();
+  }, [userId, loadTodayLesson, loadWeeklyProgress, addToQueue]);
+
+  // Sync planSlice todayLesson with lessonsSlice dailyLesson
+  useEffect(() => {
+    if (todayLesson && todayLesson.id !== dailyLesson?.id) {
+      setDailyLesson(todayLesson);
+    }
+  }, [todayLesson, dailyLesson, setDailyLesson]);
+
+  const refresh = async () => {
+    if (!userId) return;
+    await refreshAll(userId);
+    
+    // Also refresh lesson queue
+    const queue = await lessonService.getLessonQueue(userId);
+    queue.forEach(l => addToQueue(l));
+  };
+
+  return {
+    greeting,
+    userName: userProfile?.name || null,
+    todayLesson: dailyLesson || todayLesson,
+    nextUp: nextUpQueue,
+    weeklyProgress: getWeeklyProgress(),
+    isLoading,
+    error,
+    refresh,
+  };
+};
+
