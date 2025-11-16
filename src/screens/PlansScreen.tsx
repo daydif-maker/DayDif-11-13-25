@@ -1,20 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
-import { Screen, Stack, Text, Card, Row, ScreenHeader, Button } from '@ui';
+import { Screen, Stack, Text, Card, Row, ScreenHeader, Button, ProgressBar, GoalRing } from '@ui';
 import { usePlansStore, useUserStateStore, useAuthStore } from '@store';
 import { TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { PlansStackParamList } from '@navigation/types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Box } from '@ui/primitives';
+import { Ionicons } from '@expo/vector-icons';
+import { useIconColor } from '@ui/hooks/useIconColor';
+import * as Haptics from 'expo-haptics';
 
 type PlansScreenNavigationProp = NativeStackNavigationProp<PlansStackParamList, 'Plans'>;
 
 export const PlansScreen: React.FC = () => {
   const navigation = useNavigation<PlansScreenNavigationProp>();
   const { user } = useAuthStore();
-  const { learningHistory, kpis, addHistoryEntry, loadKPIs, loadLearningHistory } = usePlansStore();
+  const {
+    learningHistory,
+    kpis,
+    weeklyGoal,
+    loadKPIs,
+    loadLearningHistory,
+    loadWeeklyProgress,
+    getWeeklyProgress,
+  } = usePlansStore();
   const { reset } = useUserStateStore();
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const iconColorPrimary = useIconColor('primary');
+  const iconColorSecondary = useIconColor('secondary');
 
   const handleReset = async () => {
     try {
@@ -29,8 +43,11 @@ export const PlansScreen: React.FC = () => {
 
     const loadData = async () => {
       try {
-        // Load KPIs and history using store actions
-        await loadKPIs(user.id);
+        // Load KPIs, history, and weekly progress
+        await Promise.all([
+          loadKPIs(user.id),
+          loadWeeklyProgress(user.id),
+        ]);
 
         // Load last 30 days of history
         const endDate = new Date().toISOString().split('T')[0];
@@ -61,6 +78,22 @@ export const PlansScreen: React.FC = () => {
   };
 
   const calendarDays = generateCalendarDays();
+  const weeklyProgress = getWeeklyProgress();
+
+  const handleMonthChange = (direction: 'prev' | 'next') => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newMonth = new Date(currentMonth);
+    if (direction === 'prev') {
+      newMonth.setMonth(newMonth.getMonth() - 1);
+    } else {
+      newMonth.setMonth(newMonth.getMonth() + 1);
+    }
+    setCurrentMonth(newMonth);
+  };
+
+  const getMonthName = (date: Date): string => {
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
 
   return (
     <Screen>
@@ -72,38 +105,99 @@ export const PlansScreen: React.FC = () => {
             subtitle="Track your learning progress and achievements"
           />
 
-          {/* KPI Tiles - Enhanced Blinkist-style */}
+          {/* Month selector */}
+          <Box
+            flexDirection="row"
+            alignItems="center"
+            justifyContent="space-between"
+            marginBottom="md"
+          >
+            <TouchableOpacity
+              onPress={() => handleMonthChange('prev')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-back" size={24} color={iconColorPrimary} />
+            </TouchableOpacity>
+            <Text variant="heading3">{getMonthName(currentMonth)}</Text>
+            <TouchableOpacity
+              onPress={() => handleMonthChange('next')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-forward" size={24} color={iconColorPrimary} />
+            </TouchableOpacity>
+          </Box>
+
+          {/* KPI Tiles - Cal AI-inspired horizontal trio with thin progress arcs */}
           <Box>
-            <Text variant="heading3" marginBottom="sm">
+            <Text variant="heading3" marginBottom="xs" fontWeight="600">
               Your Progress
+            </Text>
+            <Text variant="bodySmall" color="textSecondary" marginBottom="md">
+              Track your learning metrics
             </Text>
             <Row gap="md">
               <Card variant="elevated" flex={1} padding="md">
-                <Text variant="heading2" marginBottom="xs">
-                  {kpis.totalTimeLearned}
-                </Text>
-                <Text variant="caption" color="textSecondary">
-                  Minutes Learned
-                </Text>
+                <Box alignItems="center">
+                  <GoalRing 
+                    progress={Math.min((kpis.totalTimeLearned / 1000) * 100, 100)} 
+                    size={80} 
+                    strokeWidth={4}
+                    centerLabel={kpis.totalTimeLearned}
+                    showPercentage={false}
+                  />
+                  <Text variant="caption" color="textTertiary" marginTop="xs" textAlign="center">
+                    Minutes Learned
+                  </Text>
+                </Box>
               </Card>
               <Card variant="elevated" flex={1} padding="md">
-                <Text variant="heading2" marginBottom="xs">
-                  {kpis.totalLessonsCompleted}
-                </Text>
-                <Text variant="caption" color="textSecondary">
-                  Lessons Completed
-                </Text>
+                <Box alignItems="center">
+                  <GoalRing 
+                    progress={Math.min((kpis.totalLessonsCompleted / 50) * 100, 100)} 
+                    size={80} 
+                    strokeWidth={4}
+                    centerLabel={kpis.totalLessonsCompleted}
+                    showPercentage={false}
+                  />
+                  <Text variant="caption" color="textTertiary" marginTop="xs" textAlign="center">
+                    Lessons Completed
+                  </Text>
+                </Box>
               </Card>
               <Card variant="elevated" flex={1} padding="md">
-                <Text variant="heading2" marginBottom="xs">
-                  {kpis.currentStreak}
-                </Text>
-                <Text variant="caption" color="textSecondary">
-                  Day Streak
-                </Text>
+                <Box alignItems="center">
+                  <GoalRing 
+                    progress={Math.min((kpis.currentStreak / 30) * 100, 100)} 
+                    size={80} 
+                    strokeWidth={4}
+                    centerLabel={kpis.currentStreak}
+                    showPercentage={false}
+                  />
+                  <Text variant="caption" color="textTertiary" marginTop="xs" textAlign="center">
+                    Day Streak
+                  </Text>
+                </Box>
               </Card>
             </Row>
           </Box>
+
+          {/* Weekly Goal Visualization */}
+          {weeklyGoal && weeklyProgress.percentage > 0 && (
+            <Card variant="elevated" padding="lg">
+              <Text variant="heading4" marginBottom="sm">
+                Weekly Goal Progress
+              </Text>
+              <Box flexDirection="row" alignItems="center" gap="md">
+                <Box flex={1}>
+                  <Text variant="bodySmall" color="textSecondary" marginBottom="xs">
+                    {weeklyProgress.lessons} / {weeklyGoal.targetLessons} lessons
+                  </Text>
+                  <ProgressBar progress={weeklyProgress.percentage} />
+                </Box>
+                <Text variant="heading3">{Math.round(weeklyProgress.percentage)}%</Text>
+              </Box>
+            </Card>
+          )}
 
           {/* Calendar Grid - Enhanced styling */}
           <Box>
@@ -118,6 +212,7 @@ export const PlansScreen: React.FC = () => {
                 <TouchableOpacity
                   key={date}
                   onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     navigation.navigate('DayDetail', { date });
                   }}
                   activeOpacity={0.7}
@@ -125,7 +220,7 @@ export const PlansScreen: React.FC = () => {
                   <Box
                     width={44}
                     height={44}
-                    borderRadius="md"
+                    borderRadius="full"
                     backgroundColor={entry ? 'primary' : 'backgroundSecondary'}
                     alignItems="center"
                     justifyContent="center"
@@ -135,6 +230,7 @@ export const PlansScreen: React.FC = () => {
                     <Text
                       variant="caption"
                       color={entry ? 'textInverse' : 'textTertiary'}
+                      fontWeight={entry ? '600' : '400'}
                     >
                       {new Date(date).getDate()}
                     </Text>

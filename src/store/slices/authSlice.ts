@@ -166,14 +166,42 @@ export const useAuthStore = create<AuthState>()(
       bootstrapAuth: async () => {
         try {
           set({ isLoading: true, isInitialized: false });
+          
+          // Check if Supabase is configured
+          const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+          const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+          
+          if (!supabaseUrl || !supabaseKey) {
+            console.warn('Supabase not configured, skipping auth initialization');
+            set({
+              user: null,
+              session: null,
+              isLoading: false,
+              isInitialized: true,
+              error: null,
+            });
+            return;
+          }
+          
+          // Add timeout to prevent hanging
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Auth timeout')), 3000);
+          });
 
-          // Get current session
+          // Get current session with timeout
+          const sessionPromise = supabase.auth.getSession();
+          
           const {
             data: { session },
             error,
-          } = await supabase.auth.getSession();
+          } = await Promise.race([sessionPromise, timeoutPromise as any]).catch(() => ({
+            data: { session: null },
+            error: null,
+          }));
 
-          if (error) throw error;
+          if (error) {
+            console.warn('Auth error:', error);
+          }
 
           set({
             user: session?.user ?? null,
@@ -195,10 +223,13 @@ export const useAuthStore = create<AuthState>()(
             error instanceof Error
               ? error.message
               : 'Failed to bootstrap auth';
+          console.warn('Auth bootstrap error:', errorMessage);
           set({
+            user: null,
+            session: null,
             isLoading: false,
             isInitialized: true,
-            error: errorMessage,
+            error: null, // Don't block app with auth errors
           });
         }
       },

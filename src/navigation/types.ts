@@ -12,6 +12,18 @@ export type PlansStackParamList = {
   DayDetail: { date: string };
 };
 
+export type OnboardingStackParamList = {
+  Welcome: undefined;
+  ChooseGoal: undefined;
+  CommuteInput: undefined;
+  LessonSettings: undefined;
+  GeneratePlan: undefined;
+};
+
+export type CreatePlanStackParamList = {
+  CreatePlan: undefined;
+};
+
 export type RootTabParamList = {
   TodayTab: NavigatorScreenParams<TodayStackParamList>;
   PlansTab: NavigatorScreenParams<PlansStackParamList>;

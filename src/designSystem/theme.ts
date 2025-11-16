@@ -247,6 +247,10 @@ export const lightTheme = createTheme({
     glassBackground: 'rgba(255, 255, 255, 0.7)',
     glassBorder: 'rgba(255, 255, 255, 0.18)',
 
+    // Surface gradients (Cal AI-inspired)
+    surfaceGradientPrimary: palette.white,
+    surfaceGradientSecondary: palette.neutral50,
+
     // Pure colors (for direct use when needed)
     white: palette.white,
     black: palette.black,
@@ -261,6 +265,18 @@ export const lightTheme = createTheme({
     tablet: 768,
   },
   shadows: elevation,
+  // Animation durations (Cal AI-inspired)
+  animationDurations: {
+    fast: 200,
+    normal: 500,
+    slow: 600,
+  },
+  // Haptic feedback styles
+  haptics: {
+    light: 'light',
+    medium: 'medium',
+    heavy: 'heavy',
+  },
 });
 
 export type Theme = typeof lightTheme;

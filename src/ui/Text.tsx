@@ -13,14 +13,17 @@ type TextProps = RestyleTextProps<Theme> & {
 export const Text: React.FC<TextProps> = ({
   variant = 'body',
   color = 'textPrimary',
-  ...props
+  children,
+  ...restProps
 }) => {
   return (
     <BaseText
       variant={variant}
       color={color}
-      {...props}
-    />
+      {...restProps}
+    >
+      {children}
+    </BaseText>
   );
 };
 

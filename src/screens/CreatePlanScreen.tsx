@@ -45,8 +45,8 @@ export const CreatePlanScreen: React.FC = () => {
   const handleCreatePlan = async () => {
     try {
       await createPlan();
-      // Navigate back to Today screen
-      navigation.navigate('Today');
+      // Navigation will be handled by RootNavigator based on state
+      // When hasPlan becomes true, RootNavigator will show MainTabs
     } catch (err) {
       // Error is handled by the hook
       console.error('Failed to create plan:', err);

@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { lessonService } from '@services/api/lessonService';
 import { Lesson } from '@store/types';
 import { useIconColor } from '@ui/hooks/useIconColor';
+import { LessonPlayback } from '../components/LessonPlayback';
 
 export const LessonDetailScreen: React.FC = () => {
   const route = useRoute();
@@ -169,19 +170,21 @@ export const LessonDetailScreen: React.FC = () => {
             </Text>
           </Card>
 
-          {/* Action button */}
-          <Button
-            variant="primary"
-            onPress={() => {
-              if (activeTab === 'play') {
-                // Handle audio playback
-              } else {
+          {/* Play tab content - Full playback interface */}
+          {activeTab === 'play' ? (
+            <Box marginTop="lg">
+              <LessonPlayback lesson={lesson} />
+            </Box>
+          ) : (
+            <Button
+              variant="primary"
+              onPress={() => {
                 // Handle reading
-              }
-            }}
-          >
-            {activeTab === 'play' ? 'Start Listening' : 'Start Reading'}
-          </Button>
+              }}
+            >
+              Start Reading
+            </Button>
+          )}
         </Stack>
       </ScrollView>
     </Screen>

@@ -1,3 +1,6 @@
+// Primitives
+export { Box, BaseText } from './primitives';
+
 // Layout components
 export { Stack } from './layout/Stack';
 export { Row } from './layout/Row';
@@ -15,5 +18,7 @@ export { ScreenHeader } from './ScreenHeader';
 export { LoadingState } from './LoadingState';
 export { EmptyState } from './EmptyState';
 export { Chip } from './Chip';
+export { Slider } from './Slider';
+export { GoalRing } from './GoalRing';
 
 

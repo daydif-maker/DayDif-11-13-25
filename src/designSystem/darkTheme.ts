@@ -49,10 +49,26 @@ export const darkTheme = createTheme({
     glassBackground: 'rgba(30, 37, 46, 0.7)',
     glassBorder: 'rgba(255, 255, 255, 0.1)',
 
+    // Surface gradients (Cal AI-inspired)
+    surfaceGradientPrimary: '#141920',
+    surfaceGradientSecondary: '#1E252E',
+
     // Pure colors
     white: '#FFFFFF',
     black: '#000000',
     transparent: 'transparent',
+  },
+  // Animation durations (Cal AI-inspired)
+  animationDurations: {
+    fast: 200,
+    normal: 500,
+    slow: 600,
+  },
+  // Haptic feedback styles
+  haptics: {
+    light: 'light',
+    medium: 'medium',
+    heavy: 'heavy',
   },
 });
 

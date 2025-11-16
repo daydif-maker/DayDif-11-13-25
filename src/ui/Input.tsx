@@ -45,8 +45,9 @@ export function Input<T extends FieldValues>({
         borderColor={hasError ? 'borderError' : 'border'}
         borderRadius="md"
         paddingHorizontal="md"
-        paddingVertical="sm"
+        paddingVertical="md"
         backgroundColor="surface"
+        minHeight={48}
       >
         <TextInput
           value={value as string}

@@ -1,31 +1,110 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect } from 'react';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabNavigator } from './TabNavigator';
+import { OnboardingStack } from './OnboardingStack';
+import { CreatePlanStack } from './CreatePlanStack';
 import { useTheme } from '@designSystem/ThemeProvider';
 import { useAuthStore } from '@store';
-import { View, ActivityIndicator } from 'react-native';
+import { useUserStateStore } from '@store';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const RootStack = createNativeStackNavigator();
 
 export const RootNavigator: React.FC = () => {
-  const { navigationTheme } = useTheme();
+  const { navigationTheme, theme } = useTheme();
   const { user, isLoading } = useAuthStore();
+  const { hasSeenOnboarding, hasPlan } = useUserStateStore();
+  const navigationRef = useNavigationContainerRef();
+
+  const hasCompletedOnboarding = hasSeenOnboarding;
+  const userHasPlan = hasPlan();
+
+  // Debug logging
+  console.log('RootNavigator state:', {
+    isLoading,
+    hasCompletedOnboarding,
+    userHasPlan,
+    user: !!user,
+  });
 
   // Show loading while checking auth
+  // Note: This should rarely show since App.tsx handles isInitialized
+  // But keeping it as a safety check
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
+      <SafeAreaView 
+        style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]} 
+        edges={['top', 'bottom']}
+      >
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </SafeAreaView>
     );
   }
 
-  // TODO: Add auth screens for when user is not signed in
-  // For now, show TabNavigator regardless of auth state
-  // In production, you'd conditionally render auth screens here
+  // Determine current route based on user state
+  const getCurrentRoute = () => {
+    if (!hasCompletedOnboarding) {
+      console.log('Routing to: Onboarding');
+      return 'Onboarding';
+    }
+    if (!userHasPlan) {
+      console.log('Routing to: CreatePlanFlow');
+      return 'CreatePlanFlow';
+    }
+    console.log('Routing to: MainTabs');
+    return 'MainTabs';
+  };
+
+  // Navigate based on state changes
+  useEffect(() => {
+    if (!navigationRef.isReady()) return;
+
+    const currentRoute = getCurrentRoute();
+    const currentRouteName = navigationRef.getCurrentRoute()?.name;
+
+    if (currentRouteName !== currentRoute) {
+      navigationRef.reset({
+        index: 0,
+        routes: [{ name: currentRoute }],
+      });
+    }
+  }, [hasCompletedOnboarding, userHasPlan, navigationRef]);
 
   return (
-    <NavigationContainer theme={navigationTheme}>
-      <TabNavigator />
+    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+      <RootStack.Navigator
+        initialRouteName={getCurrentRoute()}
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade',
+          contentStyle: {
+            backgroundColor: theme.colors.background,
+          },
+        }}
+      >
+        <RootStack.Screen 
+          name="Onboarding" 
+          component={OnboardingStack}
+          options={{
+            contentStyle: {
+              backgroundColor: theme.colors.background,
+            },
+          }}
+        />
+        <RootStack.Screen name="CreatePlanFlow" component={CreatePlanStack} />
+        <RootStack.Screen name="MainTabs" component={TabNavigator} />
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 

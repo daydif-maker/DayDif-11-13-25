@@ -23,14 +23,23 @@
       "@designSystem/*": [
         "./src/designSystem/*"
       ],
+      "@navigation/*": [
+        "./src/navigation/*"
+      ],
       "@ui/*": [
         "./src/ui/*"
+      ],
+      "@ui": [
+        "./src/ui/index"
       ],
       "@features/*": [
         "./src/features/*"
       ],
       "@store/*": [
         "./src/store/*"
+      ],
+      "@store": [
+        "./src/store/index"
       ],
       "@services/*": [
         "./src/services/*"
@@ -49,6 +58,9 @@
       ],
       "@hooks/*": [
         "./src/hooks/*"
+      ],
+      "@screens/*": [
+        "./src/screens/*"
       ]
     }
   },

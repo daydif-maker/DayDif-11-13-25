@@ -16,8 +16,9 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const systemColorScheme = useColorScheme();
-  const [themeVariant, setThemeVariant] = useState<ThemeVariant>('light');
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [themeVariant, setThemeVariant] = useState<ThemeVariant>(
+    systemColorScheme === 'dark' ? 'dark' : 'light'
+  );
 
   // Load saved theme preference or use system default
   useEffect(() => {
@@ -26,15 +27,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
         if (savedTheme === 'light' || savedTheme === 'dark') {
           setThemeVariant(savedTheme);
-        } else {
+        } else if (systemColorScheme) {
           // Use system preference if no saved preference
           setThemeVariant(systemColorScheme === 'dark' ? 'dark' : 'light');
         }
       } catch (error) {
         console.error('Failed to load theme preference:', error);
-        setThemeVariant(systemColorScheme === 'dark' ? 'dark' : 'light');
-      } finally {
-        setIsLoaded(true);
+        if (systemColorScheme) {
+          setThemeVariant(systemColorScheme === 'dark' ? 'dark' : 'light');
+        }
       }
     };
 
@@ -97,10 +98,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }),
     [theme, themeVariant, navigationTheme]
   );
-
-  if (!isLoaded) {
-    return null; // Or a loading spinner
-  }
 
   return (
     <ThemeContext.Provider value={contextValue}>

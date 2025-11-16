@@ -2,7 +2,9 @@ import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
-import { ThemeProvider } from './src/designSystem/ThemeProvider';
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemeProvider, useTheme } from './src/designSystem/ThemeProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { useAuthStore } from './src/store';
@@ -10,7 +12,23 @@ import 'react-native-gesture-handler';
 
 enableScreens();
 
-export default function App() {
+// Loading component that uses theme
+const LoadingScreen: React.FC = () => {
+  const { theme } = useTheme();
+  return (
+    <SafeAreaView 
+      style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]} 
+      edges={['top', 'bottom']}
+    >
+      <ActivityIndicator size="large" color={theme.colors.primary} />
+      <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+        Loading...
+      </Text>
+    </SafeAreaView>
+  );
+};
+
+const AppContent: React.FC = () => {
   const { bootstrapAuth, isInitialized } = useAuthStore();
 
   useEffect(() => {
@@ -20,17 +38,37 @@ export default function App() {
 
   // Show loading state while initializing auth
   if (!isInitialized) {
-    return null; // Or show a loading screen
+    return <LoadingScreen />;
   }
 
   return (
+    <>
+      <StatusBar style="auto" />
+      <RootNavigator />
+    </>
+  );
+};
+
+export default function App() {
+  return (
     <SafeAreaProvider>
-      <ErrorBoundary>
-        <ThemeProvider>
-          <StatusBar style="auto" />
-          <RootNavigator />
-        </ThemeProvider>
-      </ErrorBoundary>
+      <ThemeProvider>
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+});

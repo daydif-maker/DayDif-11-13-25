@@ -4,10 +4,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { Lesson, LearningHistoryEntry } from '../types';
 
+interface OnboardingData {
+  goal?: string;
+  minutesPerDay?: number;
+  daysPerWeek?: number;
+  lessonLength?: number;
+  difficulty?: string;
+  audioStyle?: string;
+}
+
 interface UserStateState {
   // Persisted state
   hasSeenOnboarding: boolean;
   activePlanId: string | null;
+  onboardingData: OnboardingData;
 
   // Ephemeral state
   lessons: Lesson[] | null;
@@ -20,6 +30,8 @@ interface UserStateState {
   // Actions
   setHasSeenOnboarding: (seen: boolean) => void;
   setActivePlanId: (planId: string | null) => void;
+  setOnboardingData: (data: Partial<OnboardingData>) => void;
+  clearOnboardingData: () => void;
   setLessons: (lessons: Lesson[] | null) => void;
   setHistory: (history: LearningHistoryEntry[]) => void;
   setTodayLesson: (lesson: Lesson | null) => void;
@@ -66,6 +78,7 @@ export const useUserStateStore = create<UserStateState>()(
         // Initial state
         hasSeenOnboarding: false,
         activePlanId: null,
+        onboardingData: {},
         lessons: null,
         history: [],
         todayLesson: null,
@@ -76,6 +89,11 @@ export const useUserStateStore = create<UserStateState>()(
         // Actions
         setHasSeenOnboarding: (seen: boolean) => set({ hasSeenOnboarding: seen }),
         setActivePlanId: (planId: string | null) => set({ activePlanId: planId }),
+        setOnboardingData: (data: Partial<OnboardingData>) =>
+          set((state) => ({
+            onboardingData: { ...state.onboardingData, ...data },
+          })),
+        clearOnboardingData: () => set({ onboardingData: {} }),
         setLessons: (lessons: Lesson[] | null) => set({ lessons }),
         setHistory: (history: LearningHistoryEntry[]) => set({ history }),
         setTodayLesson: (lesson: Lesson | null) => set({ todayLesson: lesson }),
@@ -87,6 +105,7 @@ export const useUserStateStore = create<UserStateState>()(
           set({
             hasSeenOnboarding: false,
             activePlanId: null,
+            onboardingData: {},
             lessons: null,
             history: [],
             todayLesson: null,
@@ -132,6 +151,7 @@ export const useUserStateStore = create<UserStateState>()(
       partialize: (state) => ({
         hasSeenOnboarding: state.hasSeenOnboarding,
         activePlanId: state.activePlanId,
+        onboardingData: state.onboardingData,
       }),
     }
   )

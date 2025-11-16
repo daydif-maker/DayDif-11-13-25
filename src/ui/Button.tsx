@@ -46,7 +46,7 @@ export const Button: React.FC<ButtonProps> = ({
         };
       case 'secondary':
         return {
-          backgroundColor: disabled ? 'border' : 'backgroundSecondary',
+          backgroundColor: disabled ? 'border' : 'transparent',
           borderWidth: 1,
           borderColor: disabled ? 'border' : 'border',
         };
@@ -54,7 +54,7 @@ export const Button: React.FC<ButtonProps> = ({
         return {
           backgroundColor: 'transparent',
           borderWidth: 1,
-          borderColor: disabled ? 'border' : 'primary', // Blinkist green border
+          borderColor: disabled ? 'border' : 'border',
         };
       case 'ghost':
         return {
@@ -86,13 +86,14 @@ export const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.7}
     >
       <Box
-        paddingHorizontal="lg"
+        paddingHorizontal={variant === 'primary' ? 'xl' : 'lg'}
         paddingVertical="md"
-        borderRadius="md"
+        borderRadius={variant === 'primary' ? 'full' : 'md'}
         alignItems="center"
         justifyContent="center"
         minHeight={48}
         opacity={disabled ? 0.5 : 1}
+        width={variant === 'primary' && !props.width ? '100%' : undefined}
         {...getVariantStyles()}
         {...props}
       >
@@ -105,6 +106,7 @@ export const Button: React.FC<ButtonProps> = ({
           <Text
             variant="body"
             color={getTextColor()}
+            fontWeight={variant === 'primary' ? '600' : '400'}
           >
             {children}
           </Text>

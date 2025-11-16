@@ -38,7 +38,7 @@ export const Chip: React.FC<ChipProps> = ({
       <Box
         paddingHorizontal="md"
         paddingVertical="sm"
-        borderRadius="full"
+        borderRadius="md"
         borderWidth={1}
         borderColor={selected ? 'primary' : 'border'}
         backgroundColor={selected ? 'primary' : 'surface'}
@@ -47,6 +47,7 @@ export const Chip: React.FC<ChipProps> = ({
         <Text
           variant="bodySmall"
           color={selected ? 'textInverse' : 'textPrimary'}
+          fontWeight={selected ? '600' : '400'}
         >
           {children}
         </Text>

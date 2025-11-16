@@ -5,6 +5,11 @@ import { Theme } from '@designSystem/theme';
 import { Box } from '@ui/primitives';
 import { useTheme } from '@designSystem/ThemeProvider';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 type CardVariant = 'elevated' | 'flat' | 'outlined' | 'featured';
 
@@ -21,11 +26,14 @@ export const Card: React.FC<CardProps> = ({
   children,
   hapticFeedback = true,
   padding = 'lg',
-  borderRadius = 'lg',
+  borderRadius,
   backgroundColor = 'surface',
   ...props
 }) => {
   const { theme } = useTheme();
+
+  // Cal AI-inspired border radius: xl for featured, lg for standard
+  const defaultBorderRadius = borderRadius || (variant === 'featured' ? 'xl' : 'lg');
 
   const getVariantStyles = (): Partial<BoxProps<Theme>> => {
     switch (variant) {
@@ -62,7 +70,7 @@ export const Card: React.FC<CardProps> = ({
   const content = (
     <Box
       padding={padding}
-      borderRadius={borderRadius}
+      borderRadius={defaultBorderRadius}
       backgroundColor={backgroundColor}
       {...getVariantStyles()}
       {...props}
@@ -76,21 +84,57 @@ export const Card: React.FC<CardProps> = ({
   );
 
   if (onPress) {
-    return (
-      <TouchableOpacity
-        onPress={() => {
-          if (hapticFeedback) {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          }
-          onPress();
-        }}
-        activeOpacity={0.7}
-      >
-        {content}
-      </TouchableOpacity>
-    );
+    // Cal AI-inspired card lift animation
+    return <CardWithAnimation 
+      content={content}
+      onPress={onPress}
+      hapticFeedback={hapticFeedback}
+    />;
   }
 
   return content;
+};
+
+// Separate component for animated card to avoid re-creation issues
+const CardWithAnimation: React.FC<{
+  content: React.ReactNode;
+  onPress: () => void;
+  hapticFeedback: boolean;
+}> = ({ content, onPress, hapticFeedback }) => {
+  const translateY = useSharedValue(0);
+  const opacity = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+    opacity: opacity.value,
+  }));
+
+  const handlePressIn = () => {
+    translateY.value = withTiming(-2, { duration: 150 });
+    opacity.value = withTiming(0.95, { duration: 150 });
+  };
+
+  const handlePressOut = () => {
+    translateY.value = withTiming(0, { duration: 150 });
+    opacity.value = withTiming(1, { duration: 150 });
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={() => {
+        if (hapticFeedback) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+        onPress();
+      }}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={1}
+    >
+      <Animated.View style={animatedStyle}>
+        {content}
+      </Animated.View>
+    </TouchableOpacity>
+  );
 };
 
