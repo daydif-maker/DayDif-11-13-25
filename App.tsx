@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from './src/designSystem/ThemeProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { OnboardingProvider } from './src/context/OnboardingContext';
 import { useAuthStore } from './src/store';
 import 'react-native-gesture-handler';
 
@@ -53,9 +54,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <ErrorBoundary>
-          <AppContent />
-        </ErrorBoundary>
+        <OnboardingProvider>
+          <ErrorBoundary>
+            <AppContent />
+          </ErrorBoundary>
+        </OnboardingProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

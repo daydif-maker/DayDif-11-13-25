@@ -38,7 +38,7 @@ export const Chip: React.FC<ChipProps> = ({
       <Box
         paddingHorizontal="md"
         paddingVertical="sm"
-        borderRadius="md"
+        borderRadius="full"
         borderWidth={1}
         borderColor={selected ? 'primary' : 'border'}
         backgroundColor={selected ? 'primary' : 'surface'}

@@ -8,36 +8,35 @@ import { Card } from '@ui/Card';
 import { Text } from '@ui/Text';
 import { useTheme } from '@designSystem/ThemeProvider';
 
-type WelcomeScreenNavigationProp = NativeStackNavigationProp<
+type ProjectionScreenNavigationProp = NativeStackNavigationProp<
   OnboardingStackParamList,
-  'Welcome'
+  'Projection'
 >;
 
-export const WelcomeScreen: React.FC = () => {
-  const navigation = useNavigation<WelcomeScreenNavigationProp>();
+export const ProjectionScreen: React.FC = () => {
+  const navigation = useNavigation<ProjectionScreenNavigationProp>();
   const { theme } = useTheme();
 
   const handleContinue = () => {
-    navigation.navigate('Goal');
+    navigation.navigate('Pace');
   };
 
   return (
     <OnboardingLayout
-      currentStep={0}
+      currentStep={8}
       totalSteps={17}
-      title="Welcome to DayDif"
-      subtitle="Let's personalize your commute-learning plan."
+      title="Your learning target is achievable"
+      subtitle="With your commute and goals, you can complete:"
       onContinue={handleContinue}
-      showBackButton={false}
-      showLanguageSelector={true}
+      showBackButton={true}
     >
       <View style={styles.content}>
         <Card variant="outlined" padding="lg" style={styles.card}>
-          <Text variant="body" color="textPrimary">
-            Your privacy and security matter to us.
+          <Text variant="heading3" marginBottom="sm" style={styles.highlight}>
+            12 structured lessons in the next 30 days
           </Text>
-          <Text variant="bodySmall" color="textSecondary" marginTop="xs">
-            Your data stays private and is only used to tailor your learning experience.
+          <Text variant="body" color="textSecondary" marginTop="xs">
+            Most DayDif users report noticeable improvement after the first week.
           </Text>
         </Card>
       </View>
@@ -53,4 +52,8 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
   },
+  highlight: {
+    textAlign: 'center',
+  },
 });
+

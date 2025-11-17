@@ -41,7 +41,9 @@
     "react-native-screens": "^4.18.0",
     "react-native-svg": "^15.15.0",
     "zod": "^3.22.0",
-    "zustand": "^4.5.0"
+    "zustand": "^4.5.0",
+    "lottie-react-native": "^7.1.0",
+    "react-native-progress": "^5.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",

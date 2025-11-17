@@ -14,10 +14,22 @@ export type PlansStackParamList = {
 
 export type OnboardingStackParamList = {
   Welcome: undefined;
-  ChooseGoal: undefined;
-  CommuteInput: undefined;
-  LessonSettings: undefined;
-  GeneratePlan: undefined;
+  Goal: undefined;
+  Motivation: undefined;
+  CommuteTimeOfDay: undefined;
+  CommuteDuration: undefined;
+  LearningStyle: undefined;
+  Obstacles: undefined;
+  Encouragement: undefined;
+  Projection: undefined;
+  Pace: undefined;
+  SocialProof: undefined;
+  AllSet: undefined;
+  Generating: undefined;
+  PlanReveal: undefined;
+  SaveProgress: undefined;
+  Paywall: undefined;
+  Success: undefined;
 };
 
 export type CreatePlanStackParamList = {

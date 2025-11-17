@@ -7,6 +7,8 @@ import { profileService } from '@services/api/profileService';
 import { lessonService } from '@services/api/lessonService';
 import { useLessonsStore } from '@store';
 
+const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'false';
+
 export type DaysPerWeekOption = 2 | 3 | 4 | 5;
 export type LessonDurationOption = '8-10' | '10-15' | '15-20';
 
@@ -49,27 +51,65 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
     formData.lessonDuration !== null;
 
   const createPlan = useCallback(async () => {
-    if (!isFormValid || isSubmitting || !user?.id) return;
+    console.log('createPlan called', { isFormValid, isSubmitting, hasUserId: !!user?.id, formData });
+    
+    if (!isFormValid) {
+      const errorMsg = 'Please fill in all fields before creating a plan';
+      console.warn('createPlan: Form validation failed', errorMsg);
+      setError(errorMsg);
+      return;
+    }
+    
+    if (isSubmitting) {
+      console.warn('createPlan: Already submitting');
+      return;
+    }
+    
+    // TODO: Bypass authentication check for now - remove this when auth is implemented
+    // if (!user?.id) {
+    //   const errorMsg = 'You must be logged in to create a plan';
+    //   console.warn('createPlan: User not authenticated', errorMsg);
+    //   setError(errorMsg);
+    //   return;
+    // }
 
     try {
+      console.log('createPlan: Starting plan creation...');
       setIsSubmitting(true);
       setError(null);
 
-      const userId = user.id;
+      // Use user ID if available, otherwise use mock user ID for mock data mode
+      const userId = user?.id ?? (USE_MOCK_DATA ? 'mock-user' : undefined);
 
-      // Save learning preferences
-      await profileService.updateLearningPreferences(userId, {
-        primary_goal: formData.topicPrompt.trim(),
-        topics: [formData.topicPrompt.trim()],
-        lessons_per_week: lessonCount,
-        lesson_duration_minutes:
-          formData.lessonDuration === '8-10'
-            ? 9
-            : formData.lessonDuration === '10-15'
-            ? 12
-            : 17,
-        commute_days: [], // Can be set separately
-      });
+      if (!userId) {
+        const errorMsg = 'You must be logged in to create a plan';
+        console.warn('createPlan: User not authenticated', errorMsg);
+        setError(errorMsg);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Save learning preferences only if we have a real user (not mock mode)
+      // In mock mode, planService will handle everything with mock data
+      if (user?.id && !USE_MOCK_DATA) {
+        try {
+          await profileService.updateLearningPreferences(userId, {
+            primary_goal: formData.topicPrompt.trim(),
+            topics: [formData.topicPrompt.trim()],
+            lessons_per_week: lessonCount,
+            lesson_duration_minutes:
+              formData.lessonDuration === '8-10'
+                ? 9
+                : formData.lessonDuration === '10-15'
+                ? 12
+                : 17,
+            commute_days: [], // Can be set separately
+          });
+        } catch (prefError) {
+          // Log but don't fail plan creation if preferences update fails
+          console.warn('Failed to update learning preferences, continuing with plan creation:', prefError);
+        }
+      }
 
       // Create plan from preferences
       const plan = await planService.createPlanFromPreferences(userId, {
@@ -103,9 +143,11 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
       setIsGenerating(false);
 
       setIsSubmitting(false);
+      console.log('createPlan: Plan created successfully', plan.id);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to create plan';
+      console.error('createPlan: Error creating plan', err);
       setError(errorMessage);
       setIsSubmitting(false);
       throw err;

@@ -10,6 +10,7 @@ import { Box } from '@ui/primitives';
 import { Ionicons } from '@expo/vector-icons';
 import { useIconColor } from '@ui/hooks/useIconColor';
 import * as Haptics from 'expo-haptics';
+import { useOnboarding } from '@context/OnboardingContext';
 
 type PlansScreenNavigationProp = NativeStackNavigationProp<PlansStackParamList, 'Plans'>;
 
@@ -26,6 +27,7 @@ export const PlansScreen: React.FC = () => {
     getWeeklyProgress,
   } = usePlansStore();
   const { reset } = useUserStateStore();
+  const { resetOnboarding } = useOnboarding();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const iconColorPrimary = useIconColor('primary');
   const iconColorSecondary = useIconColor('secondary');
@@ -33,6 +35,7 @@ export const PlansScreen: React.FC = () => {
   const handleReset = async () => {
     try {
       await reset();
+      await resetOnboarding();
     } catch (error) {
       console.error('Failed to reset user state:', error);
     }

@@ -7,6 +7,7 @@ import { CreatePlanStack } from './CreatePlanStack';
 import { useTheme } from '@designSystem/ThemeProvider';
 import { useAuthStore } from '@store';
 import { useUserStateStore } from '@store';
+import { useOnboarding } from '@context/OnboardingContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,24 +16,28 @@ const RootStack = createNativeStackNavigator();
 export const RootNavigator: React.FC = () => {
   const { navigationTheme, theme } = useTheme();
   const { user, isLoading } = useAuthStore();
-  const { hasSeenOnboarding, hasPlan } = useUserStateStore();
+  const { hasPlan } = useUserStateStore();
+  const { state: onboardingState, isLoading: isLoadingOnboarding } = useOnboarding();
   const navigationRef = useNavigationContainerRef();
 
-  const hasCompletedOnboarding = hasSeenOnboarding;
+  // Safely check onboarding completion - default to false if state is unclear
+  const hasCompletedOnboarding = onboardingState?.isCompleted === true;
   const userHasPlan = hasPlan();
 
   // Debug logging
   console.log('RootNavigator state:', {
     isLoading,
+    isLoadingOnboarding,
     hasCompletedOnboarding,
+    onboardingState: onboardingState?.isCompleted,
     userHasPlan,
     user: !!user,
   });
 
-  // Show loading while checking auth
+  // Show loading while checking auth or onboarding state
   // Note: This should rarely show since App.tsx handles isInitialized
   // But keeping it as a safety check
-  if (isLoading) {
+  if (isLoading || isLoadingOnboarding) {
     return (
       <SafeAreaView 
         style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]} 

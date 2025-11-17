@@ -38,18 +38,32 @@ export const OnboardingChoiceCard: React.FC<OnboardingChoiceCardProps> = ({
     <TouchableOpacity
       onPress={handlePress}
       activeOpacity={0.7}
+      style={{ borderRadius: 24, overflow: 'hidden' }}
     >
       <Box
-        padding="lg"
+        paddingVertical="lg"
+        paddingHorizontal="xl"
         borderRadius="xl"
-        backgroundColor={selected ? 'black' : 'backgroundSecondary'}
-        borderWidth={selected ? 0 : 1}
-        borderColor={selected ? 'transparent' : 'border'}
+        backgroundColor={selected ? 'black' : 'background'}
+        borderWidth={0}
+        style={{
+          minHeight: 72,
+          justifyContent: 'center',
+        }}
         {...props}
       >
         <Box flexDirection="row" alignItems="center" gap="md">
           {icon && (
-            <Box>
+            <Box
+              style={{
+                width: 40,
+                height: 40,
+                backgroundColor: selected ? 'rgba(255, 255, 255, 0.2)' : theme.colors.backgroundSecondary,
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
               {icon}
             </Box>
           )}
@@ -57,7 +71,8 @@ export const OnboardingChoiceCard: React.FC<OnboardingChoiceCardProps> = ({
             <Text
               variant="body"
               color={selected ? 'textInverse' : 'textPrimary'}
-              fontWeight={selected ? '600' : '400'}
+              fontWeight="600"
+              fontSize={18}
               marginBottom={description ? 'xs' : 0}
             >
               {label}
@@ -66,6 +81,7 @@ export const OnboardingChoiceCard: React.FC<OnboardingChoiceCardProps> = ({
               <Text
                 variant="bodySmall"
                 color={selected ? 'textInverse' : 'textSecondary'}
+                fontSize={14}
               >
                 {description}
               </Text>

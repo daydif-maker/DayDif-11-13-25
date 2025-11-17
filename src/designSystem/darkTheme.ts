@@ -43,6 +43,7 @@ export const darkTheme = createTheme({
     success: '#00C97A',
     warning: '#FF8C5A',
     error: '#FF4D5E',
+    errorBackground: '#3A1F22', // Dark red background for error messages
     info: '#4A9EFF',
 
     // Glass morphism

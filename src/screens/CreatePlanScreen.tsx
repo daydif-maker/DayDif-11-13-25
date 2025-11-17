@@ -43,13 +43,15 @@ export const CreatePlanScreen: React.FC = () => {
   };
 
   const handleCreatePlan = async () => {
+    console.log('handleCreatePlan called', { isFormValid, isSubmitting, formData });
     try {
       await createPlan();
+      console.log('handleCreatePlan: Plan creation completed');
       // Navigation will be handled by RootNavigator based on state
       // When hasPlan becomes true, RootNavigator will show MainTabs
     } catch (err) {
       // Error is handled by the hook
-      console.error('Failed to create plan:', err);
+      console.error('handleCreatePlan: Failed to create plan:', err);
     }
   };
 

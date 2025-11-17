@@ -241,6 +241,7 @@ export const lightTheme = createTheme({
     success: palette.success,
     warning: palette.warning,
     error: palette.error,
+    errorBackground: '#FFEBEE', // Light red background for error messages
     info: palette.info,
 
     // Glass morphism

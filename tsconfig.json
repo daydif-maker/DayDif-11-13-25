@@ -61,6 +61,12 @@
       ],
       "@screens/*": [
         "./src/screens/*"
+      ],
+      "@context/*": [
+        "./src/context/*"
+      ],
+      "@components/*": [
+        "./src/components/*"
       ]
     }
   },

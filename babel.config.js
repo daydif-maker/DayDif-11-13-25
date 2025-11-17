@@ -22,6 +22,8 @@ module.exports = function(api) {
             '@lib': './src/lib',
             '@hooks': './src/hooks',
             '@screens': './src/screens',
+            '@context': './src/context',
+            '@components': './src/components',
           },
         },
       ],
