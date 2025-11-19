@@ -39,7 +39,9 @@ export const WorkoutFrequencyScreen: React.FC = () => {
   const handleContinue = () => {
     updateState({ workoutFrequency: selectedFrequency } as any);
     // Navigate to next screen
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
   };
 
   const handleSelectFrequency = (frequency: string) => {
@@ -58,13 +60,14 @@ export const WorkoutFrequencyScreen: React.FC = () => {
       showLanguageSelector={true}
     >
       <View style={styles.content}>
-        {FREQUENCY_OPTIONS.map((option) => (
+        {FREQUENCY_OPTIONS.map((option, index) => (
           <View key={option.label} style={styles.optionContainer}>
             <OnboardingChoiceCard
               label={option.label}
               description={option.description}
               selected={selectedFrequency === option.label}
               onPress={() => handleSelectFrequency(option.label)}
+              index={index}
               icon={
                 <Ionicons 
                   name={option.icon as any} 

@@ -59,6 +59,7 @@ designSystem/
 - **Body:** 16px, regular, 24px line height - Primary content
 - **BodySmall:** 14px, regular, 20px line height - Secondary content
 - **Caption:** 12px, regular, 16px line height - Metadata and labels
+- **Onboarding Title:** 32px, bold, 40px line height - Onboarding screen titles (custom size)
 
 ### Components
 
@@ -136,12 +137,74 @@ designSystem/
 - **Animation:** Smooth 500ms transition using react-native-reanimated
 - **Border Radius:** Full (pill shape)
 
+#### GoalRing
+- **Component:** Circular progress indicator using SVG
+- **Style:** Cal AI-inspired thin arc (4px stroke width default)
+- **Sweep:** 270° arc starting from top (-90° rotation)
+- **Size:** Configurable (default 120px)
+- **Animation:** Smooth 600ms animation using react-native-reanimated
+- **Center Label:** Supports custom text or numbers, optional percentage display
+- **Usage:** Weekly goal tracking, KPI visualization, progress indicators
+
 #### AudioPlayer
 - **Play/Pause Button:** 48px circular button with primary background
 - **Icons:** Ionicons play/pause icons (24px, textInverse color)
 - **Progress:** Uses ProgressBar component
 - **Time Display:** Caption text in textTertiary color
 - **Surface:** surfaceElevated background with top border
+
+#### Slider
+- **Component:** Custom slider component for value selection
+- **Track:** 8px height, backgroundSecondary color, full border radius
+- **Fill:** Black fill with animated width transitions
+- **Thumb:** 24px circular thumb with black background, 2px white border
+- **Animation:** Smooth 200ms transitions using react-native-reanimated
+- **Interaction:** Pan responder for drag gestures, supports min/max/step values
+- **Usage:** For duration selection, intensity settings, and other numeric inputs
+
+#### Fab (Floating Action Button)
+- **Size:** 56px × 56px circular button
+- **Background:** Primary color (Blinkist green)
+- **Icon:** Default "add" icon (24px, textInverse color), customizable
+- **Shadow:** Uses shadows.lg token for elevation
+- **Haptic Feedback:** Light impact on press (enabled by default)
+- **Active Opacity:** 0.7 on TouchableOpacity
+- **Usage:** Primary action button floating above content
+
+#### OnboardingLayout
+- **Component:** Main layout wrapper for onboarding screens
+- **Progress Bar:** 3px height, black fill, shows completion percentage
+- **Back Button:** Simple arrow icon (24px), no background circle
+- **Language Selector:** Optional US flag + "EN" text in top right
+- **Title:** 32px bold, custom line height (40px)
+- **Subtitle:** 16px body text in textSecondary color
+- **Content:** Scrollable area with lg horizontal padding
+- **Footer:** Fixed footer with Continue button (56px height, 28px radius)
+- **Keyboard Avoiding:** Optional KeyboardAvoidingView wrapper
+- **Animation:** Spring animations for button appearance
+
+#### OnboardingChoiceCard
+- **Component:** Choice card for onboarding selections
+- **Size:** Minimum 72px height, full width
+- **Padding:** lg vertical (24px), xl horizontal (32px)
+- **Border Radius:** xl (16px)
+- **Selected State:** Black background with white text
+- **Unselected State:** Background color with primary text
+- **Icon Support:** Optional icon with 40px circular background
+- **Description:** Optional secondary text below label (14px, textSecondary)
+- **Animation:** Staggered spring animations (50ms delay per card)
+- **Haptic Feedback:** Light impact on press (enabled by default)
+- **Usage:** Primary selection component for onboarding screens
+
+#### Chip (Selectable Pill)
+- **Component:** Selectable pill-shaped button component
+- **Border Radius:** Full (pill shape)
+- **Padding:** md horizontal (16px), sm vertical (8px)
+- **Selected State:** Primary background with textInverse, bold text (600 weight)
+- **Unselected State:** Surface background with border, regular text (400 weight)
+- **Border:** 1px border using border token (primary when selected)
+- **Haptic Feedback:** Light impact on press (enabled by default)
+- **Usage:** Duration selection, frequency options, segmented controls
 
 ### Layout Primitives
 - **Stack:** Vertical layout with configurable gap (default: md/16px)
@@ -187,6 +250,15 @@ designSystem/
 - **Action Bar:** Dark teal background with Read/Play tabs
 - **Content:** Large title, metadata row, description cards
 - **Action Button:** Primary green button for main CTA
+
+### Onboarding Screen Patterns
+- **Layout:** Uses OnboardingLayout component for consistent structure
+- **Progress:** 3px black progress bar at top showing step completion
+- **Header:** 32px bold title with optional 16px gray subtitle
+- **Choices:** OnboardingChoiceCard components in vertical stack with md spacing
+- **Footer:** Fixed Continue button (56px height, 28px radius, black background)
+- **Navigation:** Simple back arrow, optional language selector
+- **Spacing:** lg horizontal padding (24px), xl gaps between major sections
 
 ### Design Patterns
 - **Section Headers:** Heading3 with descriptive subtitle in bodySmall/secondary
@@ -260,8 +332,9 @@ designSystem/
 - `sm`: 4px - Small elements
 - `md`: 8px - Buttons, small cards
 - `lg`: 12px - Standard cards (default)
-- `xl`: 16px - Large cards
-- `full`: 9999px - Pills, avatars
+- `xl`: 16px - Large cards, onboarding choice cards
+- `full`: 9999px - Pills, avatars, FAB buttons
+- **Onboarding Continue Button:** 28px (custom, between xl and full)
 
 ### Shadows & Elevation
 
@@ -285,10 +358,11 @@ All shadows use theme elevation tokens. Never hard-code shadow values.
 
 #### Usage Guidelines
 1. **Screen Titles:** Heading1 (36px bold) with green underline via ScreenHeader component
-2. **Section Headers:** Heading3 (20px semibold) with optional descriptive subtitle in bodySmall/secondary
-3. **Card Titles:** Heading4 (18px semibold) for consistent card title styling
-4. **Content:** Body (16px regular) for primary content with 24px line height
-5. **Metadata:** Caption (12px regular) in textTertiary color for labels and metadata
+2. **Onboarding Titles:** 32px bold with 40px line height (custom size for onboarding screens)
+3. **Section Headers:** Heading3 (20px semibold) with optional descriptive subtitle in bodySmall/secondary
+4. **Card Titles:** Heading4 (18px semibold) for consistent card title styling
+5. **Content:** Body (16px regular) for primary content with 24px line height
+6. **Metadata:** Caption (12px regular) in textTertiary color for labels and metadata
 
 #### Letter Spacing
 - **Headings:** Tight letter spacing (-0.5px) for refined appearance
@@ -300,10 +374,11 @@ All shadows use theme elevation tokens. Never hard-code shadow values.
 
 ### Visual Hierarchy
 1. **Screen Titles:** Heading1 with green underline (ScreenHeader component)
-2. **Section Headers:** Heading3 with descriptive subtitle in bodySmall/secondary
-3. **Card Titles:** Heading4 (standardized) for all card titles
-4. **Content:** Body text with proper line height
-5. **Metadata:** Caption text in tertiary color with icons
+2. **Onboarding Titles:** 32px bold (custom size) with optional subtitle
+3. **Section Headers:** Heading3 with descriptive subtitle in bodySmall/secondary
+4. **Card Titles:** Heading4 (standardized) for all card titles
+5. **Content:** Body text with proper line height
+6. **Metadata:** Caption text in tertiary color with icons
 
 ### Interaction Patterns
 
@@ -351,6 +426,8 @@ All shadows use theme elevation tokens. Never hard-code shadow values.
 - **Button Press:** Immediate visual feedback (0.7 opacity) + haptic feedback
 - **Card Press:** Visual feedback + haptic feedback (if enabled)
 - **Tab Navigation:** Haptic feedback on tab switch
+- **Onboarding Cards:** Staggered spring animations (50ms delay per card)
+- **Slider:** Smooth 200ms transitions on value change
 - **No Animation:** Keep interactions snappy and responsive
 
 ### Best Practices

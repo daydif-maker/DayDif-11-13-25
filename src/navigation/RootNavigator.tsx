@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabNavigator } from './TabNavigator';
@@ -8,7 +8,7 @@ import { useTheme } from '@designSystem/ThemeProvider';
 import { useAuthStore } from '@store';
 import { useUserStateStore } from '@store';
 import { useOnboarding } from '@context/OnboardingContext';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const RootStack = createNativeStackNavigator();
@@ -16,13 +16,28 @@ const RootStack = createNativeStackNavigator();
 export const RootNavigator: React.FC = () => {
   const { navigationTheme, theme } = useTheme();
   const { user, isLoading } = useAuthStore();
-  const { hasPlan } = useUserStateStore();
+  // Subscribe to activePlanId directly so React knows when it changes
+  const activePlanId = useUserStateStore((state) => state.activePlanId);
   const { state: onboardingState, isLoading: isLoadingOnboarding } = useOnboarding();
   const navigationRef = useNavigationContainerRef();
 
   // Safely check onboarding completion - default to false if state is unclear
   const hasCompletedOnboarding = onboardingState?.isCompleted === true;
-  const userHasPlan = hasPlan();
+  // Use activePlanId directly instead of hasPlan() function for reactivity
+  const userHasPlan = !!activePlanId;
+  
+  const getCurrentRoute = useCallback(() => {
+    if (!hasCompletedOnboarding) {
+      console.log('Routing to: Onboarding');
+      return 'Onboarding';
+    }
+    if (!userHasPlan) {
+      console.log('Routing to: CreatePlanFlow');
+      return 'CreatePlanFlow';
+    }
+    console.log('Routing to: MainTabs');
+    return 'MainTabs';
+  }, [hasCompletedOnboarding, userHasPlan]);
 
   // Debug logging
   console.log('RootNavigator state:', {
@@ -31,8 +46,34 @@ export const RootNavigator: React.FC = () => {
     hasCompletedOnboarding,
     onboardingState: onboardingState?.isCompleted,
     userHasPlan,
+    activePlanId,
     user: !!user,
   });
+
+  // Navigate based on state changes
+  useEffect(() => {
+    if (!navigationRef.isReady()) {
+      console.log('RootNavigator: Navigation ref not ready yet');
+      return;
+    }
+
+    const currentRoute = getCurrentRoute();
+    const currentRouteName = navigationRef.getCurrentRoute()?.name;
+
+    console.log('RootNavigator: Checking navigation', {
+      currentRouteName,
+      targetRoute: currentRoute,
+      shouldNavigate: currentRouteName !== currentRoute,
+    });
+
+    if (currentRouteName !== currentRoute) {
+      console.log('RootNavigator: Navigating to', currentRoute);
+      navigationRef.reset({
+        index: 0,
+        routes: [{ name: currentRoute }],
+      });
+    }
+  }, [getCurrentRoute, navigationRef, hasCompletedOnboarding, userHasPlan]);
 
   // Show loading while checking auth or onboarding state
   // Note: This should rarely show since App.tsx handles isInitialized
@@ -47,35 +88,6 @@ export const RootNavigator: React.FC = () => {
       </SafeAreaView>
     );
   }
-
-  // Determine current route based on user state
-  const getCurrentRoute = () => {
-    if (!hasCompletedOnboarding) {
-      console.log('Routing to: Onboarding');
-      return 'Onboarding';
-    }
-    if (!userHasPlan) {
-      console.log('Routing to: CreatePlanFlow');
-      return 'CreatePlanFlow';
-    }
-    console.log('Routing to: MainTabs');
-    return 'MainTabs';
-  };
-
-  // Navigate based on state changes
-  useEffect(() => {
-    if (!navigationRef.isReady()) return;
-
-    const currentRoute = getCurrentRoute();
-    const currentRouteName = navigationRef.getCurrentRoute()?.name;
-
-    if (currentRouteName !== currentRoute) {
-      navigationRef.reset({
-        index: 0,
-        routes: [{ name: currentRoute }],
-      });
-    }
-  }, [hasCompletedOnboarding, userHasPlan, navigationRef]);
 
   return (
     <NavigationContainer ref={navigationRef} theme={navigationTheme}>
@@ -112,4 +124,3 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-

@@ -1,5 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TouchableOpacity } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withDelay,
+} from 'react-native-reanimated';
 import { BoxProps } from '@shopify/restyle';
 import { Theme } from '@designSystem/theme';
 import { Box } from '@ui/primitives';
@@ -14,6 +20,7 @@ type OnboardingChoiceCardProps = BoxProps<Theme> & {
   description?: string;
   icon?: React.ReactNode;
   hapticFeedback?: boolean;
+  index?: number;
 };
 
 export const OnboardingChoiceCard: React.FC<OnboardingChoiceCardProps> = ({
@@ -23,9 +30,37 @@ export const OnboardingChoiceCard: React.FC<OnboardingChoiceCardProps> = ({
   description,
   icon,
   hapticFeedback = true,
+  index = 0,
   ...props
 }) => {
   const { theme } = useTheme();
+  const scale = useSharedValue(0.8);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    const delay = index * 50; // 50ms delay between each button
+    scale.value = withDelay(
+      delay,
+      withSpring(1, {
+        damping: 12,
+        stiffness: 200,
+      })
+    );
+    opacity.value = withDelay(
+      delay,
+      withSpring(1, {
+        damping: 12,
+        stiffness: 200,
+      })
+    );
+  }, [index, scale, opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    };
+  });
 
   const handlePress = () => {
     if (hapticFeedback) {
@@ -35,11 +70,12 @@ export const OnboardingChoiceCard: React.FC<OnboardingChoiceCardProps> = ({
   };
 
   return (
-    <TouchableOpacity
-      onPress={handlePress}
-      activeOpacity={0.7}
-      style={{ borderRadius: 24, overflow: 'hidden' }}
-    >
+    <Animated.View style={animatedStyle}>
+      <TouchableOpacity
+        onPress={handlePress}
+        activeOpacity={0.7}
+        style={{ borderRadius: 24, overflow: 'hidden' }}
+      >
       <Box
         paddingVertical="lg"
         paddingHorizontal="xl"
@@ -90,6 +126,7 @@ export const OnboardingChoiceCard: React.FC<OnboardingChoiceCardProps> = ({
         </Box>
       </Box>
     </TouchableOpacity>
+    </Animated.View>
   );
 };
 

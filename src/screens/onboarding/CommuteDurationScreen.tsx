@@ -37,6 +37,7 @@ export const CommuteDurationScreen: React.FC = () => {
       subtitle="We'll tailor daily lessons to fit your available time."
       onContinue={handleContinue}
       showBackButton={true}
+      scrollEnabled={false}
       showLanguageSelector={true}
     >
       <View style={styles.content}>
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingTop: 32,
-    alignItems: 'center',
+    alignItems: 'stretch',
     justifyContent: 'center',
   },
   durationDisplay: {
@@ -78,4 +79,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
 });
-

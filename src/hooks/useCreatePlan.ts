@@ -6,6 +6,7 @@ import { planService } from '@services/api/planService';
 import { profileService } from '@services/api/profileService';
 import { lessonService } from '@services/api/lessonService';
 import { useLessonsStore } from '@store';
+import { generateMockLessonsForPlan } from '@services/api/mocks/mockLessons';
 
 const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'false';
 
@@ -32,7 +33,7 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
   const { user } = useAuthStore();
   const { setActivePlanId, setIsGenerating, setTodayLesson, setLessons } = useUserStateStore();
   const { setDailyLesson, addToQueue, clearQueue } = useLessonsStore();
-  const { setActivePlan } = usePlansStore();
+  const { setActivePlan, setTodayLesson: setPlansTodayLesson } = usePlansStore();
 
   const [formData, setFormData] = useState<CreatePlanFormData>({
     topicPrompt: '',
@@ -123,21 +124,44 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
       setActivePlanId(plan.id);
       setActivePlan(plan);
 
-      // Load today's lesson and queue
-      const todayLesson = await lessonService.getDailyLesson(userId);
-      const queue = await lessonService.getLessonQueue(userId);
-
-      // Update lessons store
-      clearQueue();
-      if (todayLesson) {
+      // Generate mock lessons if in mock mode
+      if (USE_MOCK_DATA) {
+        const mockLessons = generateMockLessonsForPlan(
+          formData.topicPrompt.trim(),
+          lessonCount,
+          formData.lessonDuration!
+        );
+        
+        // Set today's lesson (first lesson)
+        const todayLesson = mockLessons[0];
         setDailyLesson(todayLesson);
         setTodayLesson(todayLesson);
-      }
-      queue.forEach(lesson => addToQueue(lesson));
+        setPlansTodayLesson(todayLesson);
+        
+        // Set queue (remaining lessons)
+        clearQueue();
+        mockLessons.slice(1).forEach(lesson => addToQueue(lesson));
+        
+        // Set lessons array
+        setLessons(mockLessons);
+      } else {
+        // Load today's lesson and queue from API
+        const todayLesson = await lessonService.getDailyLesson(userId);
+        const queue = await lessonService.getLessonQueue(userId);
 
-      // Set lessons array
-      const allLessons = todayLesson ? [todayLesson, ...queue] : queue;
-      setLessons(allLessons);
+        // Update lessons store
+        clearQueue();
+        if (todayLesson) {
+          setDailyLesson(todayLesson);
+          setTodayLesson(todayLesson);
+          setPlansTodayLesson(todayLesson);
+        }
+        queue.forEach(lesson => addToQueue(lesson));
+
+        // Set lessons array
+        const allLessons = todayLesson ? [todayLesson, ...queue] : queue;
+        setLessons(allLessons);
+      }
 
       // Set generating to false
       setIsGenerating(false);
@@ -162,6 +186,7 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
     setActivePlan,
     setIsGenerating,
     setTodayLesson,
+    setPlansTodayLesson,
     setLessons,
     setDailyLesson,
     addToQueue,

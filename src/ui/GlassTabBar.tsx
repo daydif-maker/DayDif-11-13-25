@@ -1,6 +1,6 @@
 import React from 'react';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { TouchableOpacity, View, StyleSheet } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@designSystem/ThemeProvider';
 import { Text } from './Text';
@@ -8,18 +8,18 @@ import * as Haptics from 'expo-haptics';
 import { Box } from '@ui/primitives';
 import { Ionicons } from '@expo/vector-icons';
 
-// Icon mapping for tabs
-const getTabIcon = (routeName: string, isFocused: boolean, activeColor: string, inactiveColor: string) => {
-  const iconSize = 24;
-  const iconColor = isFocused ? activeColor : inactiveColor;
+// Icon mapping for tabs - Minimalist style
+const getTabIcon = (routeName: string, isFocused: boolean, color: string) => {
+  const iconSize = 24; // Standard refined size
   
   switch (routeName) {
     case 'TodayTab':
-      return <Ionicons name={isFocused ? 'home' : 'home-outline'} size={iconSize} color={iconColor} />;
+      // Cal AI uses filled for active, outline for inactive
+      return <Ionicons name={isFocused ? 'home' : 'home-outline'} size={iconSize} color={color} />;
     case 'PlansTab':
-      return <Ionicons name={isFocused ? 'calendar' : 'calendar-outline'} size={iconSize} color={iconColor} />;
+      return <Ionicons name={isFocused ? 'calendar' : 'calendar-outline'} size={iconSize} color={color} />;
     default:
-      return <Ionicons name="ellipse-outline" size={iconSize} color={iconColor} />;
+      return <Ionicons name="ellipse-outline" size={iconSize} color={color} />;
   }
 };
 
@@ -31,119 +31,83 @@ export const GlassTabBar: React.FC<BottomTabBarProps> = ({
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // Cal AI-inspired pill-shaped tab bar
-  const tabContent = (
+  return (
     <Box
-      flexDirection="row"
-      paddingVertical="md"
-      paddingHorizontal="lg"
-      justifyContent="space-around"
-      alignItems="center"
-      minHeight={60}
+      position="absolute"
+      bottom={0}
+      left={0}
+      right={0}
+      backgroundColor="surface"
+      borderTopWidth={1}
+      borderTopColor="border"
+      style={[
+        theme.shadows.sm, // Subtle top shadow/separation
+        { paddingBottom: insets.bottom }
+      ]}
     >
-      {state.routes.map((route, index) => {
-        const { options } = descriptors[route.key];
-        const isFocused = state.index === index;
+      <Box
+        flexDirection="row"
+        height={60} // Fixed height
+        alignItems="center"
+        justifyContent="space-around"
+      >
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const isFocused = state.index === index;
 
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
 
-          if (!isFocused && !event.defaultPrevented) {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            navigation.navigate(route.name, route.params);
-          }
-        };
+            if (!isFocused && !event.defaultPrevented) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              navigation.navigate(route.name, route.params);
+            }
+          };
 
-        const onLongPress = () => {
-          navigation.emit({
-            type: 'tabLongPress',
-            target: route.key,
-          });
-        };
+          const onLongPress = () => {
+            navigation.emit({
+              type: 'tabLongPress',
+              target: route.key,
+            });
+          };
 
-        // Active: dark gray/black, Inactive: light gray
-        const iconColor = isFocused ? theme.colors.textPrimary : theme.colors.textTertiary;
-        const textColor = isFocused ? 'textPrimary' : 'textTertiary';
+          // Active: Black (primary), Inactive: Gray (tertiary)
+          const color = isFocused ? theme.colors.navActive : theme.colors.navInactive;
 
-        return (
-          <TouchableOpacity
-            key={route.key}
-            accessibilityRole="button"
-            accessibilityState={isFocused ? { selected: true } : {}}
-            accessibilityLabel={options.tabBarAccessibilityLabel}
-            testID={options.tabBarTestID}
-            onPress={onPress}
-            onLongPress={onLongPress}
-            style={{ flex: 1 }}
-          >
-            <Box alignItems="center" justifyContent="center" position="relative">
-              {getTabIcon(route.name, isFocused, iconColor, iconColor)}
-              <Text
-                variant="caption"
-                color={textColor}
-                marginTop="xs"
-              >
-                {options.title || route.name}
-              </Text>
-              {/* Thin horizontal line indicator for active tab */}
-              {isFocused && (
-                <Box
-                  position="absolute"
-                  bottom={-2}
-                  width={20}
-                  height={1.5}
-                  backgroundColor="textPrimary"
-                  borderRadius="sm"
-                />
-              )}
-            </Box>
-          </TouchableOpacity>
-        );
-      })}
+          return (
+            <TouchableOpacity
+              key={route.key}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              testID={options.tabBarTestID}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              style={{ flex: 1 }}
+              activeOpacity={0.7}
+            >
+              <Box alignItems="center" justifyContent="center">
+                {getTabIcon(route.name, isFocused, color)}
+                <Text
+                  variant="caption"
+                  style={{ 
+                    color: color,
+                    marginTop: 4,
+                    fontSize: 10,
+                    fontWeight: isFocused ? '600' : '400' 
+                  }}
+                >
+                  {options.title || route.name}
+                </Text>
+              </Box>
+            </TouchableOpacity>
+          );
+        })}
+      </Box>
     </Box>
   );
-
-  return (
-    <View
-      style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        alignItems: 'center',
-        paddingBottom: Math.max(insets.bottom, theme.spacing.sm),
-        paddingHorizontal: theme.spacing.md,
-      }}
-      pointerEvents="box-none"
-    >
-      <View
-        style={[
-          styles.pillContainer,
-          {
-            backgroundColor: theme.colors.white,
-            shadowColor: theme.shadows.md.shadowColor,
-            shadowOffset: theme.shadows.md.shadowOffset,
-            shadowOpacity: theme.shadows.md.shadowOpacity,
-            shadowRadius: theme.shadows.md.shadowRadius,
-            elevation: theme.shadows.md.elevation,
-          },
-        ]}
-      >
-        {tabContent}
-      </View>
-    </View>
-  );
 };
-
-const styles = StyleSheet.create({
-  pillContainer: {
-    borderRadius: 9999, // Full pill shape
-    minWidth: 260,
-    maxWidth: '100%',
-  },
-});
-

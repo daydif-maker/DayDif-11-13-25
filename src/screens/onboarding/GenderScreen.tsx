@@ -22,7 +22,9 @@ export const GenderScreen: React.FC = () => {
   const handleContinue = () => {
     updateState({ gender: selectedGender });
     // Navigate to next screen (you'll need to add this to your navigation)
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
   };
 
   const handleSelectGender = (gender: string) => {
@@ -41,12 +43,13 @@ export const GenderScreen: React.FC = () => {
       showLanguageSelector={true}
     >
       <View style={styles.content}>
-        {GENDER_OPTIONS.map((gender) => (
+        {GENDER_OPTIONS.map((gender, index) => (
           <View key={gender} style={styles.optionContainer}>
             <OnboardingChoiceCard
               label={gender}
               selected={selectedGender === gender}
               onPress={() => handleSelectGender(gender)}
+              index={index}
             />
           </View>
         ))}

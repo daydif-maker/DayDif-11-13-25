@@ -14,7 +14,6 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-
 type OnboardingLayoutProps = BoxProps<Theme> & {
   // Progress tracking
   currentStep: number;
@@ -36,6 +35,7 @@ type OnboardingLayoutProps = BoxProps<Theme> & {
   showBackButton?: boolean;
   showLanguageSelector?: boolean;
   keyboardAvoiding?: boolean;
+  scrollEnabled?: boolean;
 };
 
 export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
@@ -50,70 +50,29 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   showBackButton = true,
   showLanguageSelector = false,
   keyboardAvoiding = false,
+  scrollEnabled = true,
 }) => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const progress = (currentStep / totalSteps) * 100;
-
-  // Animation values for staggered entrance
-  const headerRowScale = useSharedValue(0.8);
-  const headerRowOpacity = useSharedValue(0);
-  const titleScale = useSharedValue(0.9);
-  const titleOpacity = useSharedValue(0);
-  const contentScale = useSharedValue(0.9);
-  const contentOpacity = useSharedValue(0);
+  const buttonScale = useSharedValue(0.8);
+  const buttonOpacity = useSharedValue(0);
 
   useEffect(() => {
-    // Top buttons (header row) pop in first
-    headerRowScale.value = withSpring(1, {
+    buttonScale.value = withSpring(1, {
       damping: 12,
       stiffness: 200,
     });
-    headerRowOpacity.value = withTiming(1, {
+    buttonOpacity.value = withTiming(1, {
       duration: 150,
       easing: Easing.out(Easing.ease),
     });
-
-    // Title follows quickly
-    setTimeout(() => {
-      titleScale.value = withSpring(1, {
-        damping: 12,
-        stiffness: 200,
-      });
-      titleOpacity.value = withTiming(1, {
-        duration: 150,
-        easing: Easing.out(Easing.ease),
-      });
-    }, 50);
-
-    // Content pops in quickly after
-    setTimeout(() => {
-      contentScale.value = withSpring(1, {
-        damping: 12,
-        stiffness: 200,
-      });
-      contentOpacity.value = withTiming(1, {
-        duration: 150,
-        easing: Easing.out(Easing.ease),
-      });
-    }, 100);
   }, [currentStep]);
 
-  const headerRowAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: headerRowScale.value }],
-    opacity: headerRowOpacity.value,
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: buttonScale.value }],
+    opacity: buttonOpacity.value,
   }));
-
-  const titleAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: titleScale.value }],
-    opacity: titleOpacity.value,
-  }));
-
-  const contentAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: contentScale.value }],
-    opacity: contentOpacity.value,
-  }));
-
   const handleBack = () => {
     if (navigation.canGoBack()) {
       navigation.goBack();
@@ -124,15 +83,17 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header with progress bar */}
       <View style={[styles.header, { paddingHorizontal: theme.spacing.lg }]}>
-        <Animated.View style={[styles.headerRow, headerRowAnimatedStyle]}>
+        <View style={[styles.headerRow]}>
           {/* Back button */}
           {showBackButton ? (
-            <TouchableOpacity
-              onPress={handleBack}
-              style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
-            </TouchableOpacity>
+            <Animated.View style={[styles.buttonWrapper, buttonAnimatedStyle]}>
+              <TouchableOpacity
+                onPress={handleBack}
+                style={styles.backButton}
+              >
+                <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+              </TouchableOpacity>
+            </Animated.View>
           ) : (
             <View style={styles.placeholder} />
           )}
@@ -163,21 +124,23 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
           
           {/* Language selector placeholder */}
           {showLanguageSelector ? (
-            <TouchableOpacity style={styles.languageButton}>
-              <Text variant="body" fontSize={20}>
-                🇺🇸
-              </Text>
-              <Text variant="body" color="textPrimary" fontWeight="600">
-                EN
-              </Text>
-            </TouchableOpacity>
+            <Animated.View style={[styles.buttonWrapper, buttonAnimatedStyle]}>
+              <TouchableOpacity style={styles.languageButton}>
+                <Text variant="body" fontSize={20}>
+                  🇺🇸
+                </Text>
+                <Text variant="body" color="textPrimary" fontWeight="600">
+                  EN
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
           ) : (
             <View style={styles.placeholder} />
           )}
-        </Animated.View>
+        </View>
         
         {/* Title and subtitle */}
-        <Animated.View style={[styles.titleContainer, titleAnimatedStyle]}>
+        <View style={[styles.titleContainer]}>
           <Text variant="heading1" marginBottom={subtitle ? 'sm' : 'xl'} fontSize={32} lineHeight={40}>
             {title}
           </Text>
@@ -186,23 +149,34 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
               {subtitle}
             </Text>
           )}
-        </Animated.View>
+        </View>
       </View>
 
       {/* Scrollable content */}
-      <Animated.View style={[styles.scrollViewContainer, contentAnimatedStyle]}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingHorizontal: theme.spacing.lg },
-          ]}
-        >
-          {children}
-        </ScrollView>
-      </Animated.View>
+      <View style={[styles.scrollViewContainer]}>
+        {scrollEnabled ? (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            style={styles.scrollView}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingHorizontal: theme.spacing.lg },
+            ]}
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          <View
+            style={[
+              styles.scrollContent,
+              { paddingHorizontal: theme.spacing.lg, flex: 1 },
+            ]}
+          >
+            {children}
+          </View>
+        )}
+      </View>
 
       {/* Fixed footer with CTA */}
       <View
@@ -294,6 +268,10 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 64,
   },
+  buttonWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   progressContainer: {
     flex: 1,
     height: 4,
@@ -340,4 +318,3 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
 });
-

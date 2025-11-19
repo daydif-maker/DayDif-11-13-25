@@ -67,13 +67,14 @@ export const MotivationScreen: React.FC = () => {
       showLanguageSelector={true}
     >
       <View style={styles.content}>
-        {MOTIVATION_OPTIONS.map((motivation) => (
+        {MOTIVATION_OPTIONS.map((motivation, index) => (
           <View key={motivation.label} style={styles.optionContainer}>
             <OnboardingChoiceCard
               label={motivation.label}
               description={motivation.description}
               selected={selectedMotivation === motivation.label}
               onPress={() => handleSelectMotivation(motivation.label)}
+              index={index}
               icon={
                 <Ionicons 
                   name={motivation.icon as any} 

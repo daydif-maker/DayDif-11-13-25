@@ -51,12 +51,13 @@ export const ObstaclesScreen: React.FC = () => {
       showBackButton={true}
     >
       <View style={styles.content}>
-        {OBSTACLE_OPTIONS.map((obstacle) => (
+        {OBSTACLE_OPTIONS.map((obstacle, index) => (
           <View key={obstacle} style={styles.optionContainer}>
             <OptionPill
               label={obstacle}
               selected={selectedObstacles.includes(obstacle)}
               onPress={() => handleToggleObstacle(obstacle)}
+              index={index}
             />
           </View>
         ))}

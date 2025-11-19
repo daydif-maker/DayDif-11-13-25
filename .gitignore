@@ -65,3 +65,4 @@ coverage/
 # Supabase local metadata
 supabase/.temp/
 
+*.swp

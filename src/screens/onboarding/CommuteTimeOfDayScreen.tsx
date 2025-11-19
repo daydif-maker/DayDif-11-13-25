@@ -43,12 +43,13 @@ export const CommuteTimeOfDayScreen: React.FC = () => {
       showBackButton={true}
     >
       <View style={styles.content}>
-        {TIME_OPTIONS.map((time) => (
+        {TIME_OPTIONS.map((time, index) => (
           <View key={time} style={styles.optionContainer}>
             <OptionPill
               label={time}
               selected={selectedTime === time}
               onPress={() => handleSelectTime(time)}
+              index={index}
             />
           </View>
         ))}

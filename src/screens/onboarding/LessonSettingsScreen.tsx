@@ -84,7 +84,7 @@ export const LessonSettingsScreen: React.FC = () => {
             Difficulty
           </Text>
           <Stack gap="sm">
-            {difficultyOptions.map((option) => (
+            {difficultyOptions.map((option, index) => (
               <OnboardingChoiceCard
                 key={option.id}
                 selected={difficulty === option.id}
@@ -92,6 +92,7 @@ export const LessonSettingsScreen: React.FC = () => {
                   setDifficulty(option.id);
                 }}
                 label={option.label}
+                index={index}
               />
             ))}
           </Stack>
@@ -103,7 +104,7 @@ export const LessonSettingsScreen: React.FC = () => {
             Audio Style
           </Text>
           <Stack gap="sm">
-            {audioStyleOptions.map((option) => (
+            {audioStyleOptions.map((option, index) => (
               <OnboardingChoiceCard
                 key={option.id}
                 selected={audioStyle === option.id}
@@ -111,6 +112,7 @@ export const LessonSettingsScreen: React.FC = () => {
                   setAudioStyle(option.id);
                 }}
                 label={option.label}
+                index={index}
               />
             ))}
           </Stack>

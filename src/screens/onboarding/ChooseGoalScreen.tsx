@@ -43,7 +43,7 @@ export const ChooseGoalScreen: React.FC = () => {
       ctaDisabled={!selectedGoal}
     >
       <Stack gap="sm">
-        {goalOptions.map((goal) => (
+        {goalOptions.map((goal, index) => (
           <OnboardingChoiceCard
             key={goal.id}
             selected={selectedGoal === goal.id}
@@ -51,6 +51,7 @@ export const ChooseGoalScreen: React.FC = () => {
               setSelectedGoal(goal.id);
             }}
             label={goal.label}
+            index={index}
           />
         ))}
       </Stack>

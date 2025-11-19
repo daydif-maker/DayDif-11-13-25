@@ -5,12 +5,18 @@ import { useAuthStore } from '@store';
 import { lessonService } from '@services/api/lessonService';
 import { useLessonsStore } from '@store';
 
+interface WeeklyProgressResult {
+  lessons: number;
+  minutes: number;
+  percentage: number;
+}
+
 export interface TodayScreenData {
   greeting: string;
   userName: string | null;
   todayLesson: ReturnType<typeof useLessonsStore>['dailyLesson'];
   nextUp: ReturnType<typeof useLessonsStore>['nextUpQueue'];
-  weeklyProgress: ReturnType<typeof usePlansStore>['getWeeklyProgress'];
+  weeklyProgress: WeeklyProgressResult;
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -21,7 +27,6 @@ export const useTodayScreen = (): TodayScreenData => {
   const { userProfile } = useUserStore();
   const {
     todayLesson,
-    weeklyGoal,
     getWeeklyProgress,
     isLoading,
     error,
@@ -90,4 +95,3 @@ export const useTodayScreen = (): TodayScreenData => {
     refresh,
   };
 };
-

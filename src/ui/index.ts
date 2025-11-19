@@ -20,5 +20,6 @@ export { EmptyState } from './EmptyState';
 export { Chip } from './Chip';
 export { Slider } from './Slider';
 export { GoalRing } from './GoalRing';
+export { Fab } from './Fab';
 
 

@@ -45,12 +45,13 @@ export const LearningStyleScreen: React.FC = () => {
       showLanguageSelector={true}
     >
       <View style={styles.content}>
-        {LEARNING_STYLE_OPTIONS.map((style) => (
+        {LEARNING_STYLE_OPTIONS.map((style, index) => (
           <View key={style} style={styles.optionContainer}>
             <OptionPill
               label={style}
               selected={selectedStyle === style}
               onPress={() => handleSelectStyle(style)}
+              index={index}
             />
           </View>
         ))}

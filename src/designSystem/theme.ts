@@ -1,63 +1,43 @@
 import { createTheme } from '@shopify/restyle';
 
-// Palette tokens - Blinkist-inspired premium colors
+// Palette tokens - Cal AI-inspired aesthetic
 const palette = {
-  // Primary colors - Dark teal/blue for navigation (Blinkist style)
-  primary50: '#F0F4F8',
-  primary100: '#D9E2EC',
-  primary200: '#BCCCDC',
-  primary300: '#9FB3C8',
-  primary400: '#829AB1',
-  primary500: '#627D98',
-  primary600: '#486581',
-  primary700: '#334E68',
-  primary800: '#243B53', // Dark teal navigation
-  primary900: '#1A3A52', // Darker teal for deep navigation
-
-  // Neutral colors - Refined grays for Blinkist aesthetic
-  neutral50: '#FAFAFA',
-  neutral100: '#F5F5F5',
-  neutral200: '#EEEEEE',
-  neutral300: '#E0E0E0',
-  neutral400: '#BDBDBD',
-  neutral500: '#9E9E9E',
-  neutral600: '#757575',
-  neutral700: '#616161',
-  neutral800: '#424242',
-  neutral900: '#212121',
-
-  // Accent colors - Blinkist green for active states
-  accentBlue: '#0066CC',
-  accentGreen: '#00A86B', // Blinkist green accent
-  accentGreenLight: '#00C896', // Lighter green variant
-  accentOrange: '#FF6B35',
-  accentPurple: '#7B68EE',
-
-  // Navigation colors - Dark teal matching Blinkist
-  navDark: '#1A3A52', // Dark teal navigation bar
-  navDarkAlt: '#243B53', // Alternative dark teal
-
-  // Semantic colors
-  success: '#00A86B', // Blinkist green
-  warning: '#FF6B35',
-  error: '#E63946',
-  info: '#0066CC',
-
-  // Pure colors
+  // Warm Gray Scale (Cal AI Backgrounds)
+  warmGray50: '#F9F9F9',   // Main background
+  warmGray100: '#F5F5F5',  // Secondary background
+  warmGray200: '#EFEFEF',  // Borders/Separators
+  warmGray300: '#E0E0E0',
+  warmGray400: '#BDBDBD',
+  warmGray500: '#9E9E9E',
+  
+  // Neutral Scale
   white: '#FFFFFF',
   black: '#000000',
+  
+  // Text Colors
+  textPrimary: '#111111',
+  textSecondary: '#666666',
+  textTertiary: '#999999',
+  
+  // Action Colors
+  primaryBlack: '#000000', // Main action color
+  
+  // Status Colors (Subtle/Pastel for Cal AI feel)
+  success: '#34C759', 
+  warning: '#FF9500',
+  error: '#FF3B30',
+  info: '#007AFF',
+  
   transparent: 'transparent',
 };
 
-// Typography scale - Refined for Blinkist aesthetic
+// Typography scale
 const typography = {
-  // Font families
   regular: 'System',
   medium: 'System',
   semibold: 'System',
   bold: 'System',
 
-  // Font sizes - Blinkist-style hierarchy
   fontSize10: 10,
   fontSize12: 12,
   fontSize14: 14,
@@ -69,9 +49,8 @@ const typography = {
   fontSize32: 32,
   fontSize36: 36,
   fontSize40: 40,
-  fontSize44: 44, // Large display headings
+  fontSize48: 48,
 
-  // Line heights - Generous spacing for readability
   lineHeight12: 12,
   lineHeight16: 16,
   lineHeight20: 20,
@@ -80,9 +59,8 @@ const typography = {
   lineHeight32: 32,
   lineHeight40: 40,
   lineHeight48: 48,
-  lineHeight52: 52, // For large headings
+  lineHeight56: 56,
 
-  // Letter spacing
   letterSpacingTight: -0.5,
   letterSpacingNormal: 0,
   letterSpacingWide: 0.5,
@@ -91,24 +69,27 @@ const typography = {
 const textVariants = {
   heading1: {
     fontSize: typography.fontSize36,
-    lineHeight: typography.lineHeight48,
-    fontFamily: typography.bold,
-    letterSpacing: typography.letterSpacingTight,
-    fontWeight: '700' as const,
-  },
-  heading2: {
-    fontSize: typography.fontSize28,
     lineHeight: typography.lineHeight40,
     fontFamily: typography.bold,
     letterSpacing: typography.letterSpacingTight,
     fontWeight: '700' as const,
+    color: 'textPrimary',
+  },
+  heading2: {
+    fontSize: typography.fontSize28,
+    lineHeight: typography.lineHeight32,
+    fontFamily: typography.bold,
+    letterSpacing: typography.letterSpacingTight,
+    fontWeight: '700' as const,
+    color: 'textPrimary',
   },
   heading3: {
     fontSize: typography.fontSize20,
-    lineHeight: typography.lineHeight28,
+    lineHeight: typography.lineHeight24,
     fontFamily: typography.semibold,
     letterSpacing: typography.letterSpacingNormal,
     fontWeight: '600' as const,
+    color: 'textPrimary',
   },
   heading4: {
     fontSize: typography.fontSize18,
@@ -116,6 +97,7 @@ const textVariants = {
     fontFamily: typography.semibold,
     letterSpacing: typography.letterSpacingNormal,
     fontWeight: '600' as const,
+    color: 'textPrimary',
   },
   body: {
     fontSize: typography.fontSize16,
@@ -123,6 +105,7 @@ const textVariants = {
     fontFamily: typography.regular,
     letterSpacing: typography.letterSpacingNormal,
     fontWeight: '400' as const,
+    color: 'textPrimary',
   },
   bodySmall: {
     fontSize: typography.fontSize14,
@@ -130,6 +113,7 @@ const textVariants = {
     fontFamily: typography.regular,
     letterSpacing: typography.letterSpacingNormal,
     fontWeight: '400' as const,
+    color: 'textSecondary',
   },
   caption: {
     fontSize: typography.fontSize12,
@@ -137,31 +121,41 @@ const textVariants = {
     fontFamily: typography.regular,
     letterSpacing: typography.letterSpacingNormal,
     fontWeight: '400' as const,
+    color: 'textTertiary',
+  },
+  // Large metric numbers
+  metric: {
+    fontSize: typography.fontSize32,
+    lineHeight: typography.lineHeight40,
+    fontFamily: typography.bold,
+    fontWeight: '700' as const,
+    color: 'textPrimary',
   },
 };
 
 // Spacing scale
 const spacing = {
+  none: 0,
   xs: 4,
   sm: 8,
   md: 16,
   lg: 24,
   xl: 32,
-  xxl: 48,
+  xxl: 40,
   xxxl: 64,
 };
 
 // Border radius
 const borderRadius = {
   none: 0,
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  sm: 8,
+  md: 12,
+  lg: 20,  // Standard card radius
+  xl: 28,
   full: 9999,
 };
 
-// Elevation/shadow tokens
+// Elevation/shadow tokens - Soft, diffused shadows
 const elevation = {
   none: {
     shadowColor: 'transparent',
@@ -171,88 +165,84 @@ const elevation = {
     elevation: 0,
   },
   sm: {
-    shadowColor: palette.neutral900,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
     elevation: 1,
   },
   md: {
-    shadowColor: palette.neutral900,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
     elevation: 2,
   },
   lg: {
-    shadowColor: palette.neutral900,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
     elevation: 4,
   },
   xl: {
-    shadowColor: palette.neutral900,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.1,
+    shadowRadius: 32,
     elevation: 8,
   },
 };
 
-// Light theme - semantic color roles (Blinkist-inspired)
 export const lightTheme = createTheme({
   colors: {
-    // Backgrounds - Clean whites and light grays
-    background: palette.white,
-    backgroundSecondary: palette.neutral50,
-    backgroundTertiary: palette.neutral100,
+    // Backgrounds
+    background: palette.warmGray50,
+    backgroundSecondary: palette.warmGray100,
+    backgroundTertiary: palette.warmGray200,
 
     // Surfaces
     surface: palette.white,
     surfaceElevated: palette.white,
     surfaceOverlay: 'rgba(0, 0, 0, 0.5)',
 
-    // Text - Refined hierarchy
-    textPrimary: palette.neutral900,
-    textSecondary: palette.neutral700,
-    textTertiary: palette.neutral600,
+    // Text
+    textPrimary: palette.textPrimary,
+    textSecondary: palette.textSecondary,
+    textTertiary: palette.textTertiary,
     textInverse: palette.white,
-    textDisabled: palette.neutral400,
+    textDisabled: palette.warmGray400,
 
     // Borders
-    border: palette.neutral200,
-    borderFocus: palette.accentGreen,
+    border: palette.warmGray200,
+    borderFocus: palette.black,
     borderError: palette.error,
 
-    // Interactive - Blinkist green for primary actions
-    primary: palette.accentGreen, // Blinkist green
-    primaryLight: palette.accentGreenLight,
-    primaryDark: palette.primary900,
-    secondary: palette.neutral700,
-    accent: palette.accentGreen, // Green accent throughout
+    // Interactive
+    primary: palette.primaryBlack,
+    primaryLight: '#333333',
+    primaryDark: '#000000',
+    secondary: palette.warmGray200,
+    secondaryForeground: palette.black, // Text on secondary button
+    accent: palette.primaryBlack,
 
-    // Navigation - Dark teal matching Blinkist
-    navBackground: palette.navDark,
-    navActive: palette.accentGreen, // Green for active tab
-    navInactive: palette.white,
+    // Navigation
+    navBackground: palette.white,
+    navActive: palette.black,
+    navInactive: palette.warmGray400,
 
     // Status
     success: palette.success,
     warning: palette.warning,
     error: palette.error,
-    errorBackground: '#FFEBEE', // Light red background for error messages
+    errorBackground: '#FFEBEE',
     info: palette.info,
 
     // Glass morphism
-    glassBackground: 'rgba(255, 255, 255, 0.7)',
-    glassBorder: 'rgba(255, 255, 255, 0.18)',
+    glassBackground: 'rgba(255, 255, 255, 0.8)',
+    glassBorder: 'rgba(255, 255, 255, 0.2)',
 
-    // Surface gradients (Cal AI-inspired)
-    surfaceGradientPrimary: palette.white,
-    surfaceGradientSecondary: palette.neutral50,
-
-    // Pure colors (for direct use when needed)
+    // Pure colors
     white: palette.white,
     black: palette.black,
     transparent: palette.transparent,
@@ -266,13 +256,11 @@ export const lightTheme = createTheme({
     tablet: 768,
   },
   shadows: elevation,
-  // Animation durations (Cal AI-inspired)
   animationDurations: {
     fast: 200,
-    normal: 500,
-    slow: 600,
+    normal: 300,
+    slow: 500,
   },
-  // Haptic feedback styles
   haptics: {
     light: 'light',
     medium: 'medium',

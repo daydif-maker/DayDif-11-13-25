@@ -48,12 +48,13 @@ export const GoalScreen: React.FC = () => {
       showLanguageSelector={true}
     >
       <View style={styles.content}>
-        {GOAL_OPTIONS.map((goal) => (
+        {GOAL_OPTIONS.map((goal, index) => (
           <View key={goal} style={styles.optionContainer}>
             <OptionPill
               label={goal}
               selected={selectedGoal === goal}
               onPress={() => handleSelectGoal(goal)}
+              index={index}
             />
           </View>
         ))}

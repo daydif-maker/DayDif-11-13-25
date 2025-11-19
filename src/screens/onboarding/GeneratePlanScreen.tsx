@@ -119,7 +119,9 @@ export const GeneratePlanScreen: React.FC<GeneratePlanScreenProps> = () => {
           <Button
             variant="primary"
             onPress={() => {
-              navigation.goBack();
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              }
             }}
           >
             Go Back

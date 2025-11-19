@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, PanResponder, GestureResponderEvent } from 'react-native';
+import { LayoutChangeEvent, PanResponder, GestureResponderEvent, View } from 'react-native';
 import { Box } from '@ui/primitives';
 import { useTheme } from '@designSystem/ThemeProvider';
 import Animated, {
@@ -28,40 +28,105 @@ export const Slider: React.FC<SliderProps> = ({
   const { theme } = useTheme();
   const trackWidth = useSharedValue(0);
   const animatedValue = useSharedValue(value);
+  const isDraggingRef = React.useRef(false);
+  const lastValueRef = React.useRef(value);
+  const trackRef = React.useRef<View>(null);
+  const trackOffsetRef = React.useRef<number | null>(null);
+
+  // Initialize animated value on mount
+  React.useEffect(() => {
+    animatedValue.value = value;
+    lastValueRef.current = value;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   React.useEffect(() => {
-    animatedValue.value = withTiming(value, { duration: 200 });
-  }, [value, animatedValue]);
+    if (!isDraggingRef.current && lastValueRef.current !== value) {
+      // Only animate if the value changed externally (not from dragging)
+      animatedValue.value = withTiming(value, { duration: 200 });
+      lastValueRef.current = value;
+    }
+  }, [value]);
 
-  const panResponder = React.useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => !disabled,
-      onMoveShouldSetPanResponder: () => !disabled,
-      onPanResponderGrant: () => {
-        // Haptic feedback on start
-      },
-      onPanResponderMove: (evt: GestureResponderEvent) => {
-        if (trackWidth.value === 0) return;
-        const { locationX } = evt.nativeEvent;
-        const percentage = Math.max(0, Math.min(1, locationX / trackWidth.value));
-        const newValue = Math.round(
-          (minimumValue + percentage * (maximumValue - minimumValue)) / step
-        ) * step;
-        const clampedValue = Math.max(minimumValue, Math.min(maximumValue, newValue));
-        animatedValue.value = clampedValue;
-        onValueChange(clampedValue);
-      },
-      onPanResponderRelease: () => {
-        // Haptic feedback on release
-      },
-    })
-  ).current;
+  const updateValue = React.useCallback(
+    (newValue: number) => {
+      onValueChange(newValue);
+    },
+    [onValueChange]
+  );
+
+  const getValueFromEvent = React.useCallback(
+    (event: GestureResponderEvent) => {
+      const { pageX, locationX } = event.nativeEvent;
+      const width = trackWidth.value;
+      if (width === 0) {
+        return lastValueRef.current;
+      }
+      const offset = trackOffsetRef.current;
+      const referenceX =
+        offset !== null && pageX !== undefined ? pageX - offset : locationX;
+      const clampedX = Math.max(0, Math.min(width, referenceX));
+      const percentage = clampedX / width;
+      const rawValue = minimumValue + percentage * (maximumValue - minimumValue);
+      const steppedValue = Math.round(rawValue / step) * step;
+      return Math.max(minimumValue, Math.min(maximumValue, steppedValue));
+    },
+    [maximumValue, minimumValue, step, trackWidth]
+  );
+
+  const handleTrackLayout = React.useCallback(
+    (event: LayoutChangeEvent) => {
+      const { width } = event.nativeEvent.layout;
+      trackWidth.value = width;
+      trackRef.current?.measureInWindow((x, _, measuredWidth) => {
+        trackOffsetRef.current = x;
+        trackWidth.value = measuredWidth;
+      });
+    },
+    [trackWidth]
+  );
+
+  const panResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => !disabled,
+        onStartShouldSetPanResponderCapture: () => !disabled,
+        onMoveShouldSetPanResponder: () => !disabled,
+        onMoveShouldSetPanResponderCapture: () => !disabled,
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderGrant: (evt: GestureResponderEvent) => {
+          if (trackWidth.value === 0) return;
+          isDraggingRef.current = true;
+          const clampedValue = getValueFromEvent(evt);
+          animatedValue.value = clampedValue;
+          lastValueRef.current = clampedValue;
+          updateValue(clampedValue);
+        },
+        onPanResponderMove: (evt: GestureResponderEvent) => {
+          if (trackWidth.value === 0 || !isDraggingRef.current) return;
+          const clampedValue = getValueFromEvent(evt);
+          if (Math.abs(animatedValue.value - clampedValue) > 0.01) {
+            animatedValue.value = clampedValue;
+            lastValueRef.current = clampedValue;
+            updateValue(clampedValue);
+          }
+        },
+        onPanResponderRelease: () => {
+          isDraggingRef.current = false;
+        },
+        onPanResponderTerminate: () => {
+          isDraggingRef.current = false;
+        },
+      }),
+    [disabled, getValueFromEvent, updateValue, trackWidth, animatedValue]
+  );
 
   const thumbStyle = useAnimatedStyle(() => {
     const percentage = (animatedValue.value - minimumValue) / (maximumValue - minimumValue);
     return {
       left: `${percentage * 100}%`,
-      transform: [{ translateX: -12 }],
+      top: '50%',
+      transform: [{ translateX: -12 }, { translateY: -12 }],
     };
   });
 
@@ -73,44 +138,56 @@ export const Slider: React.FC<SliderProps> = ({
   });
 
   return (
-    <Box
-      onLayout={(event) => {
-        trackWidth.value = event.nativeEvent.layout.width;
-      }}
-      height={8}
-      backgroundColor="backgroundSecondary"
-      borderRadius="full"
-      position="relative"
-      overflow="visible"
-      {...panResponder.panHandlers}
-    >
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            height: '100%',
-            backgroundColor: theme.colors.primary,
-            borderRadius: theme.borderRadius.full,
-          },
-          fillStyle,
-        ]}
-      />
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            width: 24,
-            height: 24,
-            backgroundColor: theme.colors.primary,
-            borderRadius: theme.borderRadius.full,
-            top: -8,
-            borderWidth: 2,
-            borderColor: theme.colors.background,
-          },
-          thumbStyle,
-        ]}
-      />
-    </Box>
+    <View style={{ paddingVertical: 12 }}>
+      <View
+        ref={trackRef}
+        onLayout={handleTrackLayout}
+        style={{
+          width: '100%',
+          height: 44,
+          backgroundColor: 'transparent',
+          borderRadius: theme.borderRadius.full,
+          position: 'relative',
+          overflow: 'visible',
+          justifyContent: 'center',
+        }}
+        {...panResponder.panHandlers}
+      >
+        <Box
+          height={8}
+          backgroundColor="backgroundSecondary"
+          borderRadius="full"
+          width="100%"
+        >
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              {
+                position: 'absolute',
+                height: '100%',
+                backgroundColor: theme.colors.black,
+                borderRadius: theme.borderRadius.full,
+              },
+              fillStyle,
+            ]}
+          />
+        </Box>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            {
+              position: 'absolute',
+              width: 24,
+              height: 24,
+              backgroundColor: theme.colors.black,
+              borderRadius: theme.borderRadius.full,
+              borderWidth: 2,
+              borderColor: theme.colors.background,
+            },
+            thumbStyle,
+          ]}
+        />
+      </View>
+    </View>
   );
 };
-

@@ -38,7 +38,11 @@ export const DayDetailScreen: React.FC = () => {
           borderBottomColor="border"
         >
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              }
+            }}
           >
             <Box marginRight="md">
               <Ionicons name="arrow-back" size={24} color={iconColorPrimary} />
@@ -71,7 +75,11 @@ export const DayDetailScreen: React.FC = () => {
         borderBottomColor="border"
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            }
+          }}
         >
           <Box marginRight="md">
             <Ionicons name="arrow-back" size={24} color={iconColorPrimary} />
