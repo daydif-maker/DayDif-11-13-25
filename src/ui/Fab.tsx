@@ -37,7 +37,7 @@ export const Fab: React.FC<FabProps> = ({
   };
 
   const defaultIcon = (
-    <Ionicons name="add" size={24} color={iconColorInverse} />
+    <Ionicons name="play" size={28} color={iconColorInverse} style={{ marginLeft: 3 }} />
   );
 
   return (
@@ -50,8 +50,8 @@ export const Fab: React.FC<FabProps> = ({
       style={style}
     >
       <Box
-        width={56}
-        height={56}
+        width={64}
+        height={64}
         borderRadius="full"
         backgroundColor="primary"
         alignItems="center"

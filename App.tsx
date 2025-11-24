@@ -9,6 +9,12 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OnboardingProvider } from './src/context/OnboardingContext';
 import { useAuthStore } from './src/store';
+import {
+  useFonts,
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_700Bold,
+} from '@expo-google-fonts/dm-sans';
 import 'react-native-gesture-handler';
 
 enableScreens();
@@ -31,14 +37,26 @@ const LoadingScreen: React.FC = () => {
 
 const AppContent: React.FC = () => {
   const { bootstrapAuth, isInitialized } = useAuthStore();
+  const [fontsLoaded, fontError] = useFonts({
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_700Bold,
+  });
 
   useEffect(() => {
     // Bootstrap auth on app start
     bootstrapAuth();
   }, [bootstrapAuth]);
 
-  // Show loading state while initializing auth
-  if (!isInitialized) {
+  useEffect(() => {
+    if (fontError) {
+      console.warn('Error loading DM Sans fonts:', fontError);
+      // App will fall back to system fonts if custom fonts fail to load
+    }
+  }, [fontError]);
+
+  // Show loading state while initializing auth or loading fonts
+  if (!isInitialized || !fontsLoaded) {
     return <LoadingScreen />;
   }
 

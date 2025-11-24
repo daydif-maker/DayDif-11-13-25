@@ -9,34 +9,37 @@ const palette = {
   warmGray300: '#E0E0E0',
   warmGray400: '#BDBDBD',
   warmGray500: '#9E9E9E',
-  
+
   // Neutral Scale
   white: '#FFFFFF',
   black: '#000000',
-  
+  offWhite: '#F7F8FA', // Next Up card backgrounds
+
   // Text Colors
   textPrimary: '#111111',
   textSecondary: '#666666',
   textTertiary: '#999999',
-  
+
   // Action Colors
   primaryBlack: '#000000', // Main action color
-  
+  emeraldGreen: '#00BFA5', // Primary accent for play buttons, progress rings
+  deepSlateBlue: '#1A2C42', // Navigation background
+
   // Status Colors (Subtle/Pastel for Cal AI feel)
-  success: '#34C759', 
+  success: '#00BFA5', // Updated to Emerald Green
   warning: '#FF9500',
   error: '#FF3B30',
   info: '#007AFF',
-  
+
   transparent: 'transparent',
 };
 
-// Typography scale
+// Typography scale - DM Sans Font Family
 const typography = {
-  regular: 'System',
-  medium: 'System',
-  semibold: 'System',
-  bold: 'System',
+  regular: 'DMSans_400Regular',
+  medium: 'DMSans_500Medium',
+  semibold: 'DMSans_500Medium', // Map semibold to medium since DM Sans doesn't have 600
+  bold: 'DMSans_700Bold',
 
   fontSize10: 10,
   fontSize12: 12,
@@ -63,7 +66,7 @@ const typography = {
 
   letterSpacingTight: -0.5,
   letterSpacingNormal: 0,
-  letterSpacingWide: 0.5,
+  letterSpacingWide: 1.5, // Increased for "LESSON OF THE DAY" style caps
 };
 
 const textVariants = {
@@ -72,7 +75,7 @@ const textVariants = {
     lineHeight: typography.lineHeight40,
     fontFamily: typography.bold,
     letterSpacing: typography.letterSpacingTight,
-    fontWeight: '700' as const,
+    fontWeight: '700' as const, // DM Sans Bold (no 800 weight available)
     color: 'textPrimary',
   },
   heading2: {
@@ -80,23 +83,23 @@ const textVariants = {
     lineHeight: typography.lineHeight32,
     fontFamily: typography.bold,
     letterSpacing: typography.letterSpacingTight,
-    fontWeight: '700' as const,
+    fontWeight: '700' as const, // DM Sans Bold for hero titles
     color: 'textPrimary',
   },
   heading3: {
     fontSize: typography.fontSize20,
     lineHeight: typography.lineHeight24,
-    fontFamily: typography.semibold,
+    fontFamily: typography.medium,
     letterSpacing: typography.letterSpacingNormal,
-    fontWeight: '600' as const,
+    fontWeight: '500' as const, // DM Sans Medium for "Good Morning, Alex"
     color: 'textPrimary',
   },
   heading4: {
     fontSize: typography.fontSize18,
     lineHeight: typography.lineHeight24,
-    fontFamily: typography.semibold,
+    fontFamily: typography.medium,
     letterSpacing: typography.letterSpacingNormal,
-    fontWeight: '600' as const,
+    fontWeight: '500' as const, // DM Sans Medium
     color: 'textPrimary',
   },
   body: {
@@ -105,6 +108,14 @@ const textVariants = {
     fontFamily: typography.regular,
     letterSpacing: typography.letterSpacingNormal,
     fontWeight: '400' as const,
+    color: 'textPrimary',
+  },
+  bodyMedium: {
+    fontSize: typography.fontSize16,
+    lineHeight: typography.lineHeight24,
+    fontFamily: typography.medium,
+    letterSpacing: typography.letterSpacingNormal,
+    fontWeight: '500' as const,
     color: 'textPrimary',
   },
   bodySmall: {
@@ -122,6 +133,15 @@ const textVariants = {
     letterSpacing: typography.letterSpacingNormal,
     fontWeight: '400' as const,
     color: 'textTertiary',
+  },
+  // Bold caption with wide letter spacing (for "LESSON OF THE DAY" style labels)
+  label: {
+    fontSize: typography.fontSize12,
+    lineHeight: typography.lineHeight16,
+    fontFamily: typography.bold,
+    letterSpacing: typography.letterSpacingWide,
+    fontWeight: '700' as const,
+    color: 'textPrimary',
   },
   // Large metric numbers
   metric: {
@@ -146,7 +166,7 @@ const spacing = {
 };
 
 // Border radius
-const borderRadius = {
+const borderRadii = {
   none: 0,
   sm: 8,
   md: 12,
@@ -174,8 +194,8 @@ const elevation = {
   md: {
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
     elevation: 2,
   },
   lg: {
@@ -219,17 +239,17 @@ export const lightTheme = createTheme({
     borderError: palette.error,
 
     // Interactive
-    primary: palette.primaryBlack,
-    primaryLight: '#333333',
-    primaryDark: '#000000',
+    primary: palette.emeraldGreen,
+    primaryLight: '#33CDB5',
+    primaryDark: '#008C7A',
     secondary: palette.warmGray200,
     secondaryForeground: palette.black, // Text on secondary button
-    accent: palette.primaryBlack,
+    accent: palette.emeraldGreen,
 
     // Navigation
-    navBackground: palette.white,
-    navActive: palette.black,
-    navInactive: palette.warmGray400,
+    navBackground: palette.deepSlateBlue,
+    navActive: palette.white,
+    navInactive: 'rgba(255, 255, 255, 0.5)',
 
     // Status
     success: palette.success,
@@ -248,7 +268,7 @@ export const lightTheme = createTheme({
     transparent: palette.transparent,
   },
   spacing,
-  borderRadius,
+  borderRadii,
   typography,
   textVariants,
   breakpoints: {

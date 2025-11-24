@@ -10,6 +10,7 @@ export type TodayStackParamList = {
 export type PlansStackParamList = {
   Plans: undefined;
   DayDetail: { date: string };
+  Calendar: undefined;
 };
 
 export type OnboardingStackParamList = {
@@ -46,5 +47,4 @@ declare global {
     interface RootParamList extends RootTabParamList {}
   }
 }
-
 

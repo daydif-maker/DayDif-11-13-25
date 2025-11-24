@@ -271,7 +271,7 @@ export const ParallaxHeader: React.FC<ParallaxHeaderProps> = ({
                   style={({ pressed }) => ({
                     backgroundColor: theme.colors.success,
                     paddingVertical: theme.spacing.lg,
-                    borderRadius: theme.borderRadius.xl,
+                    borderRadius: theme.borderRadii.xl,
                     alignItems: 'center',
                     opacity: pressed ? 0.9 : 1,
                     transform: [{ scale: pressed ? 0.98 : 1 }],

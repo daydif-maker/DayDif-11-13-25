@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 // Icon mapping for tabs - Minimalist style
 const getTabIcon = (routeName: string, isFocused: boolean, color: string) => {
-  const iconSize = 24; // Standard refined size
+  const iconSize = 26; // Standard refined size - increased for better visibility
   
   switch (routeName) {
     case 'TodayTab':
@@ -37,11 +37,9 @@ export const GlassTabBar: React.FC<BottomTabBarProps> = ({
       bottom={0}
       left={0}
       right={0}
-      backgroundColor="surface"
-      borderTopWidth={1}
-      borderTopColor="border"
+      backgroundColor="navBackground"
       style={[
-        theme.shadows.sm, // Subtle top shadow/separation
+        theme.shadows.none,
         { paddingBottom: insets.bottom }
       ]}
     >
