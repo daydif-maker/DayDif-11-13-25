@@ -62,6 +62,10 @@ coverage/
 # TypeScript
 *.tsbuildinfo
 
+# Python
+__pycache__/
+*.py[cod]
+
 # Supabase local metadata
 supabase/.temp/
 

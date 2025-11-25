@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
-import { ScrollView, TouchableOpacity } from 'react-native';
-import { Screen, Stack, Text, Fab, Card, Avatar, GoalRing } from '@ui';
-import { useUserStateStore } from '@store';
+import React, { useEffect, useState, useCallback } from 'react';
+import { ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';
+import { Screen, Stack, Text, Fab, Card, Avatar, GoalRing, ContentCard } from '@ui';
+import { useUserStateStore, usePlansStore } from '@store';
 import { useNavigation } from '@react-navigation/native';
 import { TodayStackParamList } from '@navigation/types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,41 +25,38 @@ import { ErrorScreen } from './today/ErrorScreen';
 
 type TodayScreenNavigationProp = NativeStackNavigationProp<TodayStackParamList, 'Today'>;
 
-const WaveformPlaceholder = () => {
-  // Create a high-fidelity waveform with more bars
-  const heights = [
-    18, 25, 12, 35, 20, 30, 15, 40, 28, 22, 32, 18, 38, 14, 28, 
-    24, 33, 19, 27, 16, 36, 21, 29, 17, 34, 23, 31, 19, 26, 15,
-    37, 22, 30, 18, 35, 20, 28, 16, 32, 24
-  ];
+// Get greeting based on time of day
+const getGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+};
 
-  return (
-    <Box flexDirection="row" alignItems="center" style={{ height: 50, gap: 3 }}>
-      {heights.map((h, i) => (
-        <Box
-          key={i}
-          style={{ 
-            width: 2.5, 
-            height: h,
-            backgroundColor: i % 3 === 0 ? '#00BFA5' : 'rgba(0, 191, 165, 0.2)'
-          }}
-          borderRadius="full"
-        />
-      ))}
-    </Box>
-  );
+// Format date for header
+const getFormattedDate = (): string => {
+  const date = new Date();
+  const options: Intl.DateTimeFormatOptions = { 
+    weekday: 'long', 
+    month: 'short', 
+    day: 'numeric' 
+  };
+  return date.toLocaleDateString('en-US', options).toUpperCase();
 };
 
 const TodayScreenContent: React.FC = () => {
   const navigation = useNavigation<TodayScreenNavigationProp>();
+  const [refreshing, setRefreshing] = useState(false);
 
   const {
     todayLesson,
     nextUp,
     userName,
+    refresh,
   } = useTodayScreen();
 
   const { setTodayLesson, setLessons } = useUserStateStore();
+  const { weeklyGoal } = usePlansStore();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const TAB_BAR_HEIGHT = 60;
@@ -75,6 +72,39 @@ const TodayScreenContent: React.FC = () => {
     }
   }, [todayLesson, nextUp, setTodayLesson, setLessons]);
 
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } catch (error) {
+      console.error('Failed to refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refresh]);
+
+  // Helper to format lesson duration (handles both seconds and minutes)
+  const formatDuration = (duration: number): string => {
+    // If duration is greater than 60, assume it's in seconds
+    if (duration > 60) {
+      return `${Math.round(duration / 60)} min`;
+    }
+    // Otherwise, assume it's already in minutes
+    return `${duration} min`;
+  };
+
+  // Calculate weekly progress
+  const weeklyProgress = weeklyGoal 
+    ? {
+        current: weeklyGoal.currentLessons,
+        target: weeklyGoal.targetLessons,
+        percentage: weeklyGoal.targetLessons > 0 
+          ? Math.round((weeklyGoal.currentLessons / weeklyGoal.targetLessons) * 100) 
+          : 0,
+      }
+    : { current: 0, target: 5, percentage: 0 };
+
   const handleCreateLesson = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate('CreatePlan');
@@ -88,6 +118,17 @@ const TodayScreenContent: React.FC = () => {
     }
   };
 
+  // Placeholder images for Next Up cards
+  const placeholderImages = [
+    'https://picsum.photos/seed/book1/128/128',
+    'https://picsum.photos/seed/book2/128/128',
+    'https://picsum.photos/seed/book3/128/128',
+    'https://picsum.photos/seed/book4/128/128',
+  ];
+
+  // Simulated progress for cards (you can replace with actual progress data)
+  const cardProgress = [35, 0, 0, 15];
+
   return (
     <Screen backgroundColor="background" edges={['top']}>
       <Box flex={1} position="relative">
@@ -97,72 +138,139 @@ const TodayScreenContent: React.FC = () => {
             paddingBottom: 100,
             paddingHorizontal: theme.spacing.lg,
           }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+              colors={[theme.colors.primary]}
+            />
+          }
         >
-          <Stack gap="xl" paddingTop="md">
-            {/* Header */}
-            <Box flexDirection="row" justifyContent="space-between" alignItems="center">
-              <Box flexDirection="row" alignItems="center" gap="md">
-                <Avatar
-                  name={userName || 'User'}
-                  size="md"
-                  gradient={['#9333EA', '#EC4899']}
-                // source={{ uri: user?.avatarUrl }} // Uncomment if avatar URL is available
-                />
-                <Text variant="heading3">
-                  Good Morning, {userName?.split(' ')[0] || 'Alex'}
+          <Stack gap="lg" paddingTop="md">
+            {/* Header Section */}
+            <Box flexDirection="row" justifyContent="space-between" alignItems="flex-start">
+              <Box flex={1}>
+                <Text 
+                  variant="caption" 
+                  color="textTertiary" 
+                  style={{ letterSpacing: 1, marginBottom: 4 }}
+                >
+                  {getFormattedDate()}
+                </Text>
+                <Text variant="heading1">
+                  {getGreeting()},{'\n'}{userName?.split(' ')[0] || 'there'}
                 </Text>
               </Box>
-              <GoalRing
-                progress={60} // Hardcoded 3/5 for now as per requirement "showing '3/5'"
-                size={50}
-                strokeWidth={4}
-                centerLabel="3/5"
-                showPercentage={false}
+              <Avatar
+                name={userName || 'User'}
+                size="md"
+                gradient={['#9333EA', '#EC4899']}
+                showOnlineIndicator
               />
             </Box>
 
-            {/* Hero Card - Lesson of the Day */}
+            {/* Featured Lesson Card */}
             {todayLesson ? (
               <Card
-                variant="elevated"
-                backgroundColor="backgroundSecondary" // Lighter background token
-                onPress={() => handlePlayLesson()}
-                style={[
-                  theme.shadows.md,
-                  { paddingHorizontal: 24, paddingVertical: 28 }
-                ]}
+                variant="featured"
+                padding="none"
+                borderRadius="lg"
+                overflow="hidden"
               >
-                <Stack gap="md">
-                  <Text variant="label" color="success" style={{ fontSize: 11 }}>
-                    LESSON OF THE DAY
-                  </Text>
-                  <Box gap="xs">
-                    <Text variant="heading2">
-                      {todayLesson.title}
-                    </Text>
-                    <Text variant="body" color="textSecondary">
-                      {Math.round(todayLesson.duration / 60)} min listen
+                {/* Image Background with Gradient Overlay */}
+                <Box style={{ height: 180, position: 'relative' }}>
+                  <Image
+                    source={{ uri: 'https://picsum.photos/seed/featured/400/200' }}
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                    }}
+                    resizeMode="cover"
+                  />
+                  <LinearGradient
+                    colors={['rgba(0,0,0,0.2)', 'rgba(26,37,48,0.95)']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={{ 
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      justifyContent: 'flex-end', 
+                      padding: 16 
+                    }}
+                  >
+                  {/* Badge */}
+                  <Box
+                    position="absolute"
+                    top={16}
+                    left={16}
+                    backgroundColor="surface"
+                    paddingHorizontal="sm"
+                    paddingVertical="xs"
+                    borderRadius="full"
+                    flexDirection="row"
+                    alignItems="center"
+                  >
+                    <Box
+                      width={6}
+                      height={6}
+                      borderRadius="full"
+                      backgroundColor="success"
+                      marginRight="xs"
+                    />
+                    <Text variant="caption" color="textPrimary" style={{ fontWeight: '600' }}>
+                      UP NEXT
                     </Text>
                   </Box>
 
-                  <Box flexDirection="row" alignItems="center" gap="md" marginTop="sm">
-                    <TouchableOpacity onPress={() => handlePlayLesson()}>
-                      <Box
-                        borderRadius="full"
-                        backgroundColor="success"
-                        alignItems="center"
-                        justifyContent="center"
-                        style={[
-                          { width: 64, height: 64 },
-                          theme.shadows.lg
-                        ]}
-                      >
-                        <Ionicons name="play" size={28} color="white" style={{ marginLeft: 4 }} />
-                      </Box>
+                  {/* Play Button */}
+                  <TouchableOpacity
+                    onPress={() => handlePlayLesson()}
+                    style={{
+                      position: 'absolute',
+                      bottom: 16,
+                      right: 16,
+                    }}
+                  >
+                    <Box
+                      borderRadius="full"
+                      backgroundColor="success"
+                      alignItems="center"
+                      justifyContent="center"
+                      style={[
+                        { width: 56, height: 56 },
+                        theme.shadows.lg
+                      ]}
+                    >
+                      <Ionicons name="play" size={24} color="white" style={{ marginLeft: 3 }} />
+                    </Box>
+                  </TouchableOpacity>
+                  </LinearGradient>
+                </Box>
+
+                {/* Content Section */}
+                <Box padding="lg" backgroundColor="surface">
+                  <Text variant="heading2" marginBottom="xs">
+                    {todayLesson.title}
+                  </Text>
+
+                  {/* Meta Info Row */}
+                  <Box flexDirection="row" alignItems="center" justifyContent="space-between">
+                    <Box flexDirection="row" alignItems="center">
+                      <Ionicons name="time-outline" size={16} color={theme.colors.textTertiary} />
+                      <Text variant="bodySmall" color="textSecondary" style={{ marginLeft: 4 }}>
+                        {formatDuration(todayLesson.duration)}
+                      </Text>
+                    </Box>
+                    <TouchableOpacity>
+                      <Text variant="bodySmall" color="primary" style={{ fontWeight: '600' }}>
+                        Details
+                      </Text>
                     </TouchableOpacity>
-                    <WaveformPlaceholder />
                   </Box>
-                </Stack>
+                </Box>
               </Card>
             ) : (
               <Card variant="elevated" padding="xl">
@@ -170,67 +278,86 @@ const TodayScreenContent: React.FC = () => {
               </Card>
             )}
 
-            {/* Next Up List */}
-            <Box>
-              <Text variant="heading3" marginBottom="md">Next Up</Text>
-              <Stack gap="md">
-                {nextUp && nextUp.length > 0 ? (
-                  nextUp.map((lesson: Lesson, index: number) => {
-                    // Cycling gradient patterns
-                    const gradientPatterns = [
-                      ['#4A90E2', '#7B68EE'], // Blue → Purple
-                      ['#FF6B35', '#FF4500'], // Orange → Red
-                      ['#F4D6CC', '#FFB5A7'], // Beige → Peach
-                    ];
-                    const gradient = gradientPatterns[index % 3];
+            {/* Two-Column Widget Row */}
+            <Box flexDirection="row" gap="md">
+              {/* Weekly Goal Widget */}
+              <Box flex={1}>
+                <Card
+                  variant="elevated"
+                  padding="lg"
+                  alignItems="center"
+                  justifyContent="center"
+                  height={160}
+                >
+                  <GoalRing
+                    progress={weeklyProgress.percentage}
+                    size={80}
+                    strokeWidth={6}
+                    centerLabel={`${weeklyProgress.current}/${weeklyProgress.target}`}
+                    showPercentage={false}
+                  />
+                  <Text variant="bodyMedium" color="textPrimary" marginTop="sm">
+                    Weekly Goal
+                  </Text>
+                  <Text variant="caption" color="textTertiary">
+                    {weeklyProgress.percentage >= 100 ? 'Goal achieved!' : 
+                     weeklyProgress.percentage >= 50 ? 'Keep it up!' : 
+                     'Get started!'}
+                  </Text>
+                </Card>
+              </Box>
 
-                    return (
-                      <Card
-                        key={lesson.id}
-                        variant="flat"
-                        padding="md"
-                        onPress={() => handlePlayLesson(lesson.id)}
-                        flexDirection="row"
-                        alignItems="center"
-                        justifyContent="space-between"
-                        style={{ backgroundColor: '#F1F5F9', borderRadius: 12 }}
-                      >
-                        <Box flexDirection="row" alignItems="center" gap="md" flex={1}>
-                          {/* Gradient Thumbnail */}
-                          <LinearGradient
-                            colors={gradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={{ 
-                              width: 56, 
-                              height: 56, 
-                              borderRadius: 12
-                            }}
-                          />
-                          <Box flex={1}>
-                            <Text variant="bodyMedium" numberOfLines={1}>
-                              {lesson.title}
-                            </Text>
-                            <Text variant="caption" color="success">
-                              {Math.round(lesson.duration / 60)} min listen
-                            </Text>
-                          </Box>
-                        </Box>
-                        <Box
-                          style={{ 
-                            width: 32, 
-                            height: 32,
-                            backgroundColor: '#1A2C42'
-                          }}
-                          borderRadius="full"
-                          alignItems="center"
-                          justifyContent="center"
-                        >
-                          <Ionicons name="play" size={16} color="white" style={{ marginLeft: 2 }} />
-                        </Box>
-                      </Card>
-                    );
-                  })
+              {/* Audio Mode Widget */}
+              <Box flex={1}>
+                <TouchableOpacity activeOpacity={0.8} style={{ flex: 1 }}>
+                  <Box
+                    flex={1}
+                    backgroundColor="audioCardBackground"
+                    borderRadius="lg"
+                    padding="lg"
+                    alignItems="center"
+                    justifyContent="center"
+                    height={160}
+                  >
+                    <Ionicons name="headset" size={24} color="white" style={{ marginBottom: 8 }} />
+                    <Text variant="bodyMedium" color="textInverse" style={{ fontWeight: '700' }}>
+                      Audio Mode
+                    </Text>
+                    <Text variant="caption" color="textInverse" style={{ opacity: 0.7, textAlign: 'center' }}>
+                      Resume your last session
+                    </Text>
+                  </Box>
+                </TouchableOpacity>
+              </Box>
+            </Box>
+
+            {/* Next Up Section */}
+            <Box>
+              <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="md">
+                <Text variant="heading3">Next Up</Text>
+                <TouchableOpacity>
+                  <Box flexDirection="row" alignItems="center">
+                    <Text variant="bodySmall" color="primary" style={{ fontWeight: '600' }}>
+                      See All
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+                  </Box>
+                </TouchableOpacity>
+              </Box>
+              
+              <Stack gap="sm">
+                {nextUp && nextUp.length > 0 ? (
+                  nextUp.map((lesson: Lesson, index: number) => (
+                    <ContentCard
+                      key={lesson.id}
+                      title={lesson.title}
+                      author={lesson.category || 'Learning'}
+                      duration={lesson.duration > 60 ? Math.round(lesson.duration / 60) : lesson.duration}
+                      thumbnailUrl={placeholderImages[index % placeholderImages.length]}
+                      progress={lesson.completed ? 100 : cardProgress[index % cardProgress.length]}
+                      onPress={() => handlePlayLesson(lesson.id)}
+                    />
+                  ))
                 ) : (
                   <Text variant="body" color="textSecondary">You're all caught up!</Text>
                 )}
@@ -244,7 +371,6 @@ const TodayScreenContent: React.FC = () => {
           onPress={handleCreateLesson}
           accessibilityLabel="Create a lesson"
           testID="today-fab-create-lesson"
-          // icon prop removed to use default 'add' icon
           style={{
             position: 'absolute',
             right: theme.spacing.lg,

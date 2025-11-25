@@ -1,10 +1,11 @@
 import React from 'react';
-import { Image } from 'react-native';
+import { Image, View } from 'react-native';
 import { BoxProps } from '@shopify/restyle';
 import { Theme } from '@designSystem/theme';
 import { Box } from '@ui/primitives';
 import { Text } from './Text';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '@designSystem/ThemeProvider';
 
 type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -14,6 +15,7 @@ type AvatarProps = BoxProps<Theme> & {
   name?: string;
   onPress?: () => void;
   gradient?: [string, string];
+  showOnlineIndicator?: boolean;
 };
 
 const sizeMap: Record<AvatarSize, number> = {
@@ -29,9 +31,12 @@ export const Avatar: React.FC<AvatarProps> = ({
   name,
   onPress,
   gradient,
+  showOnlineIndicator = false,
   ...props
 }) => {
+  const { theme } = useTheme();
   const avatarSize = sizeMap[size];
+  const indicatorSize = size === 'sm' ? 8 : size === 'md' ? 12 : 14;
   const initials = name
     ?.split(' ')
     .map(n => n[0])
@@ -39,7 +44,7 @@ export const Avatar: React.FC<AvatarProps> = ({
     .toUpperCase()
     .slice(0, 2) || '?';
 
-  const content = (
+  const avatarContent = (
     <Box
       width={avatarSize}
       height={avatarSize}
@@ -84,6 +89,27 @@ export const Avatar: React.FC<AvatarProps> = ({
         </Text>
       )}
     </Box>
+  );
+
+  const content = (
+    <View style={{ position: 'relative' }}>
+      {avatarContent}
+      {showOnlineIndicator && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            right: 0,
+            width: indicatorSize,
+            height: indicatorSize,
+            borderRadius: indicatorSize / 2,
+            backgroundColor: theme.colors.success,
+            borderWidth: 2,
+            borderColor: theme.colors.surface,
+          }}
+        />
+      )}
+    </View>
   );
 
   if (onPress) {

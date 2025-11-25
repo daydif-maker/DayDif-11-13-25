@@ -15,6 +15,7 @@ interface LessonsState {
   getDailyLesson: () => Lesson | null;
   getNextUp: () => Lesson[];
   getCompletedCount: () => number;
+  reset: () => void;
 }
 
 export const useLessonsStore = create<LessonsState>(set => ({
@@ -75,6 +76,12 @@ export const useLessonsStore = create<LessonsState>(set => ({
     const state = useLessonsStore.getState();
     return state.completedLessons.length;
   },
+  reset: () => set({
+    dailyLesson: null,
+    nextUpQueue: [],
+    completedLessons: [],
+    currentLesson: null,
+  }),
 }));
 
 

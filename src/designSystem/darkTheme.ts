@@ -28,19 +28,26 @@ export const darkTheme = createTheme({
     borderError: '#E63946',
 
     // Interactive
-    primary: '#00C97A', // Blinkist green for dark mode
-    primaryLight: '#00E896',
-    primaryDark: '#00A86B',
+    primary: '#2D6B5F', // Dark teal for dark mode
+    primaryLight: '#3D8B7F',
+    primaryDark: '#1B4B43',
     secondary: '#B8C5D1',
-    accent: '#4A9EFF',
+    secondaryForeground: '#FFFFFF',
+    accent: '#22C55E',
+    
+    // Progress & CTAs
+    progressGreen: '#22C55E',
 
-    // Navigation - Dark teal matching Blinkist
-    navBackground: '#1A3A52',
-    navActive: '#00C97A', // Green for active tab
-    navInactive: '#FFFFFF',
+    // Navigation - Dark teal
+    navBackground: '#1A2C42',
+    navActive: '#FFFFFF',
+    navInactive: 'rgba(255, 255, 255, 0.5)',
+    
+    // Audio Mode card
+    audioCardBackground: '#1A2C42',
 
     // Status
-    success: '#00C97A',
+    success: '#22C55E',
     warning: '#FF8C5A',
     error: '#FF4D5E',
     errorBackground: '#3A1F22', // Dark red background for error messages

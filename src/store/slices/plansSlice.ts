@@ -36,6 +36,9 @@ interface PlansState {
   getHistoryByDate: (date: string) => LearningHistoryEntry | null;
   getWeeklyProgress: () => { lessons: number; minutes: number; percentage: number };
   getStreakCount: () => number;
+
+  // Reset
+  reset: () => void;
 }
 
 const defaultStreak: Streak = {
@@ -231,4 +234,15 @@ export const usePlansStore = create<PlansState>((set, get) => ({
     const state = get();
     return state.streak.current;
   },
+
+  reset: () => set({
+    learningHistory: [],
+    weeklyGoal: null,
+    streak: defaultStreak,
+    kpis: defaultKPIs,
+    activePlan: null,
+    todayLesson: null,
+    isLoading: false,
+    error: null,
+  }),
 }));

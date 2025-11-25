@@ -7,8 +7,7 @@ import {
   ApiResponse,
 } from './types';
 import { UserProfile, UserPreferences } from '@store/types';
-
-const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'false';
+import { USE_MOCK_DATA } from '@utils/env';
 
 const mockProfile: UserProfile = {
   id: '1',

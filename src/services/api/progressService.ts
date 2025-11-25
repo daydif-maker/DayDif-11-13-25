@@ -1,6 +1,9 @@
 import { supabase } from '@lib/supabase/client';
 import { Database } from '@lib/supabase/database.types';
 import { LearningHistoryEntry, KPIs, Streak, WeeklyGoal } from '@store/types';
+import { getMockKPIs, getMockStreak, getMockWeeklyGoal } from './mocks/mockKPIs';
+import { getMockHistory } from './mocks/mockHistory';
+import { USE_MOCK_DATA } from '@utils/env';
 
 type DayEntryRow = Database['public']['Tables']['day_entries']['Row'];
 type SessionRow = Database['public']['Tables']['sessions']['Row'];
@@ -19,6 +22,17 @@ export const progressService = {
     daysActive: number;
     entries: DayEntryRow[];
   }> {
+    if (USE_MOCK_DATA) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const mockHistory = getMockHistory(startDate, endDate);
+      return {
+        lessonsCompleted: mockHistory.reduce((sum, e) => sum + e.lessonsCompleted, 0),
+        minutesLearned: mockHistory.reduce((sum, e) => sum + e.timeSpent, 0),
+        daysActive: mockHistory.filter(e => e.lessonsCompleted > 0).length,
+        entries: [], // Mock entries not needed for summary
+      };
+    }
+
     try {
       const { data, error } = await supabase
         .from('day_entries')
@@ -61,6 +75,11 @@ export const progressService = {
     startDate: string,
     endDate: string
   ): Promise<LearningHistoryEntry[]> {
+    if (USE_MOCK_DATA) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return getMockHistory(startDate, endDate);
+    }
+
     try {
       const { data, error } = await supabase
         .from('day_entries')
@@ -91,6 +110,11 @@ export const progressService = {
    * Get streak data calculated from day_entries
    */
   async getStreakData(userId: string): Promise<Streak> {
+    if (USE_MOCK_DATA) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      return getMockStreak();
+    }
+
     try {
       const { data, error } = await supabase
         .from('day_entries')
@@ -157,6 +181,11 @@ export const progressService = {
    * Get KPIs aggregated from sessions and day_entries
    */
   async getKPIs(userId: string): Promise<KPIs> {
+    if (USE_MOCK_DATA) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return getMockKPIs();
+    }
+
     try {
       // Get total minutes from sessions
       const { data: sessions, error: sessionsError } = await supabase
@@ -209,6 +238,11 @@ export const progressService = {
     userId: string,
     weekStart: string
   ): Promise<WeeklyGoal | null> {
+    if (USE_MOCK_DATA) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      return getMockWeeklyGoal();
+    }
+
     try {
       // Find plan for this week
       const { data: plan, error: planError } = await supabase

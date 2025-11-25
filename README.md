@@ -80,6 +80,42 @@ npm run ios
 - DayDetail screens
 - Goal-setting + progress visualization
 
+## Environment Configuration
+
+Create a `.env` file in the project root with the following variables:
+
+```bash
+# Supabase Configuration (required)
+EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Mock Data Mode (default: true)
+# Set to 'false' to use real Supabase + Modal backend
+EXPO_PUBLIC_USE_MOCK_DATA=false
+```
+
+### Backend Setup (for real lesson generation)
+
+1. **Deploy Modal Services:**
+   ```bash
+   cd backend/modal
+   modal deploy content_service.py
+   modal deploy tts_service.py
+   ```
+
+2. **Configure Supabase Edge Function Secrets:**
+   ```bash
+   supabase secrets set CONTENT_SERVICE_URL=https://your-username--daydif-content-generate-content.modal.run
+   supabase secrets set TTS_SERVICE_URL=https://your-username--daydif-tts-generate-tts.modal.run
+   ```
+
+3. **Deploy Edge Function:**
+   ```bash
+   supabase functions deploy generate-lesson
+   ```
+
+See `BACKEND_IMPLEMENTATION_GUIDE.md` for complete setup instructions.
+
 ## Mock Data
 
 The app uses mock data by default. Set `EXPO_PUBLIC_USE_MOCK_DATA=false` to use real API endpoints.

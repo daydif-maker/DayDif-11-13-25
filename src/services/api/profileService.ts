@@ -9,6 +9,34 @@ type LearningPreferences = Database['public']['Tables']['learning_preferences'][
 type LearningPreferencesInsert = Database['public']['Tables']['learning_preferences']['Insert'];
 type LearningPreferencesUpdate = Database['public']['Tables']['learning_preferences']['Update'];
 
+/**
+ * Verify user session matches the expected userId
+ * This helps debug RLS policy issues
+ */
+async function verifySession(userId: string): Promise<void> {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  
+  if (error) {
+    console.error('[profileService] Session error:', error);
+    throw new Error('Authentication session error');
+  }
+  
+  if (!session) {
+    console.error('[profileService] No active session');
+    throw new Error('No active session. Please sign in again.');
+  }
+  
+  if (session.user.id !== userId) {
+    console.error('[profileService] User ID mismatch:', {
+      sessionUserId: session.user.id,
+      providedUserId: userId,
+    });
+    throw new Error('User ID mismatch. Please sign in again.');
+  }
+  
+  console.log('[profileService] Session verified for user:', userId);
+}
+
 export const profileService = {
   /**
    * Fetch user profile by user ID
@@ -116,11 +144,15 @@ export const profileService = {
     preferences: LearningPreferencesUpdate
   ): Promise<LearningPreferences> {
     try {
+      // Verify session before making database calls
+      await verifySession(userId);
+      
       // Check if preferences exist
       const existing = await this.getLearningPreferences(userId);
 
       if (existing) {
         // Update existing
+        console.log('[profileService] Updating existing learning preferences');
         const { data, error } = await supabase
           .from('learning_preferences')
           .update(preferences)
@@ -128,10 +160,14 @@ export const profileService = {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('[profileService] Update error:', error);
+          throw error;
+        }
         return data;
       } else {
         // Insert new
+        console.log('[profileService] Creating new learning preferences');
         const { data, error } = await supabase
           .from('learning_preferences')
           .insert({
@@ -141,7 +177,10 @@ export const profileService = {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('[profileService] Insert error:', error);
+          throw error;
+        }
         return data;
       }
     } catch (error) {

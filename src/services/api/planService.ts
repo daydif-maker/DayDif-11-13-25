@@ -14,14 +14,13 @@ import {
   getMockWeeklyGoal,
 } from './mocks/mockKPIs';
 import { getMockHistory } from './mocks/mockHistory';
+import { USE_MOCK_DATA } from '@utils/env';
 
 type PlanRow = Database['public']['Tables']['plans']['Row'];
 type PlanInsert = Database['public']['Tables']['plans']['Insert'];
 type PlanLessonRow = Database['public']['Tables']['plan_lessons']['Row'];
 type PlanLessonInsert = Database['public']['Tables']['plan_lessons']['Insert'];
 type AIJobInsert = Database['public']['Tables']['ai_jobs']['Insert'];
-
-const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'false';
 
 // Helper to convert PlanRow to Plan domain object
 const mapPlanToDomain = (plan: PlanRow, lessons?: PlanLessonRow[]): Plan => {
@@ -165,18 +164,24 @@ export const planService = {
     preferences: {
       topicPrompt: string;
       daysPerWeek: number;
-      lessonDuration: '8-10' | '10-15' | '15-20';
+      lessonDuration: '5' | '8-10' | '10-15' | '15-20';
       lessonCount: number;
     }
   ): Promise<Plan> {
     if (USE_MOCK_DATA) {
       // Return mock plan for now
+      const durationMinutesMap: Record<string, number> = {
+        '5': 5,
+        '8-10': 9,
+        '10-15': 12.5,
+        '15-20': 17.5,
+      };
       const mockPlan: Plan = {
         id: `plan-${Date.now()}`,
         name: `Learning Plan: ${preferences.topicPrompt.substring(0, 30)}...`,
         goal: {
           targetLessons: preferences.lessonCount,
-          targetMinutes: preferences.lessonCount * (preferences.lessonDuration === '8-10' ? 9 : preferences.lessonDuration === '10-15' ? 12.5 : 17.5),
+          targetMinutes: preferences.lessonCount * (durationMinutesMap[preferences.lessonDuration] || 10),
           currentLessons: 0,
           currentMinutes: 0,
           weekStart: new Date().toISOString().split('T')[0],
@@ -203,6 +208,14 @@ export const planService = {
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 7);
 
+      // Duration mapping
+      const durationMinutesMap: Record<string, number> = {
+        '5': 5,
+        '8-10': 9,
+        '10-15': 12.5,
+        '15-20': 17.5,
+      };
+
       // Create the plan
       const planInsert: PlanInsert = {
         user_id: userId,
@@ -210,7 +223,7 @@ export const planService = {
         end_date: endDate.toISOString().split('T')[0],
         status: 'active',
         lessons_goal: preferences.lessonCount,
-        minutes_goal: preferences.lessonCount * (preferences.lessonDuration === '8-10' ? 9 : preferences.lessonDuration === '10-15' ? 12.5 : 17.5),
+        minutes_goal: preferences.lessonCount * (durationMinutesMap[preferences.lessonDuration] || 10),
         source: 'user_created',
         meta: {
           topicPrompt: preferences.topicPrompt,
@@ -498,7 +511,7 @@ export const planService = {
   async createPlan(data: {
     topicPrompt: string;
     daysPerWeek: number;
-    lessonDuration: '8-10' | '10-15' | '15-20';
+    lessonDuration: '5' | '8-10' | '10-15' | '15-20';
     lessonCount: number;
   }): Promise<Plan> {
     // This method requires userId, so we'll need to get it from auth context
@@ -508,4 +521,3 @@ export const planService = {
     );
   },
 };
-

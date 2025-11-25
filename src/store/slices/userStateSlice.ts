@@ -13,6 +13,15 @@ interface OnboardingData {
   audioStyle?: string;
 }
 
+export interface GenerationProgress {
+  total: number;
+  completed: number;
+  inProgress: number;
+  pending: number;
+  failed: number;
+  currentLessonTitle?: string;
+}
+
 interface UserStateState {
   // Persisted state
   hasSeenOnboarding: boolean;
@@ -26,6 +35,10 @@ interface UserStateState {
   isGenerating: boolean;
   isOffline: boolean;
   error: string | null;
+  
+  // Generation tracking state
+  generatingPlanId: string | null;
+  generationProgress: GenerationProgress;
 
   // Actions
   setHasSeenOnboarding: (seen: boolean) => void;
@@ -39,6 +52,14 @@ interface UserStateState {
   setIsOffline: (offline: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => Promise<void>;
+  resetProgress: () => Promise<void>;
+  
+  // Generation tracking actions
+  setGeneratingPlanId: (planId: string | null) => void;
+  setGenerationProgress: (progress: GenerationProgress) => void;
+  updateGenerationProgress: (progress: Partial<GenerationProgress>) => void;
+  startGeneration: (planId: string, totalLessons: number) => void;
+  completeGeneration: () => void;
 
   // Computed selectors
   isFirstTime: () => boolean;
@@ -49,6 +70,7 @@ interface UserStateState {
   isReturning: () => boolean;
   isOfflineMode: () => boolean;
   isError: () => boolean;
+  getGenerationPercentage: () => number;
 }
 
 // NetInfo listener reference for cleanup
@@ -74,6 +96,15 @@ export const useUserStateStore = create<UserStateState>()(
         set({ isOffline: offline });
       });
 
+      const defaultGenerationProgress: GenerationProgress = {
+        total: 0,
+        completed: 0,
+        inProgress: 0,
+        pending: 0,
+        failed: 0,
+        currentLessonTitle: undefined,
+      };
+
       return {
         // Initial state
         hasSeenOnboarding: false,
@@ -85,6 +116,10 @@ export const useUserStateStore = create<UserStateState>()(
         isGenerating: false,
         isOffline: false,
         error: null,
+        
+        // Generation tracking initial state
+        generatingPlanId: null,
+        generationProgress: defaultGenerationProgress,
 
         // Actions
         setHasSeenOnboarding: (seen: boolean) => set({ hasSeenOnboarding: seen }),
@@ -111,11 +146,60 @@ export const useUserStateStore = create<UserStateState>()(
             todayLesson: null,
             isGenerating: false,
             error: null,
+            generatingPlanId: null,
+            generationProgress: defaultGenerationProgress,
             // Note: isOffline is managed by NetInfo, so we don't reset it here
           });
           // Clear persisted storage
           await AsyncStorage.removeItem('user-state-storage');
         },
+        resetProgress: async () => {
+          // Reset progress state while keeping onboarding complete
+          // This resets Today and Plans tab data without going back to onboarding
+          set({
+            activePlanId: null,
+            lessons: null,
+            history: [],
+            todayLesson: null,
+            isGenerating: false,
+            error: null,
+            generatingPlanId: null,
+            generationProgress: defaultGenerationProgress,
+            // Keep hasSeenOnboarding: true (don't change it)
+            // Keep onboardingData (user preferences)
+          });
+        },
+
+        // Generation tracking actions
+        setGeneratingPlanId: (planId: string | null) => set({ generatingPlanId: planId }),
+        setGenerationProgress: (progress: GenerationProgress) => set({ generationProgress: progress }),
+        updateGenerationProgress: (progress: Partial<GenerationProgress>) =>
+          set((state) => ({
+            generationProgress: { ...state.generationProgress, ...progress },
+          })),
+        startGeneration: (planId: string, totalLessons: number) =>
+          set({
+            isGenerating: true,
+            generatingPlanId: planId,
+            generationProgress: {
+              total: totalLessons,
+              completed: 0,
+              inProgress: 0,
+              pending: totalLessons,
+              failed: 0,
+              currentLessonTitle: undefined,
+            },
+          }),
+        completeGeneration: () =>
+          set((state) => ({
+            isGenerating: false,
+            generatingPlanId: null,
+            generationProgress: {
+              ...state.generationProgress,
+              pending: 0,
+              inProgress: 0,
+            },
+          })),
 
         // Computed selectors
         isFirstTime: () => !get().hasSeenOnboarding,
@@ -143,6 +227,13 @@ export const useUserStateStore = create<UserStateState>()(
         },
         isOfflineMode: () => get().isOffline,
         isError: () => !!get().error,
+        getGenerationPercentage: () => {
+          const state = get();
+          if (state.generationProgress.total === 0) return 0;
+          return Math.round(
+            (state.generationProgress.completed / state.generationProgress.total) * 100
+          );
+        },
       };
     },
     {

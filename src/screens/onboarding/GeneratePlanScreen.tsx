@@ -6,12 +6,11 @@ import { useUserStateStore } from '@store';
 import { useAuthStore } from '@store';
 import { planService } from '@services/api/planService';
 import * as Haptics from 'expo-haptics';
+import { USE_MOCK_DATA } from '@utils/env';
 
 type GeneratePlanScreenProps = {
   // Navigation will handle this
 };
-
-const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'false';
 
 const getLessonDuration = (lessonLength: number): '8-10' | '10-15' | '15-20' => {
   if (lessonLength <= 10) return '8-10';
@@ -151,4 +150,3 @@ export const GeneratePlanScreen: React.FC<GeneratePlanScreenProps> = () => {
 
   return null;
 };
-

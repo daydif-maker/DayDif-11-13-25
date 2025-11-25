@@ -11,10 +11,12 @@ import { useCreatePlan, DaysPerWeekOption, LessonDurationOption } from '@hooks/u
 import { OptionPill } from '@components/onboarding/OptionPill';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '@store';
 
 type CreatePlanScreenNavigationProp = NativeStackNavigationProp<TodayStackParamList, 'CreatePlan'>;
 
 const daysPerWeekOptions: { value: DaysPerWeekOption; label: string }[] = [
+  { value: 1, label: '1 day (1 lesson)' },
   { value: 2, label: '2 days (4 lessons)' },
   { value: 3, label: '3 days (6 lessons)' },
   { value: 4, label: '4 days (8 lessons)' },
@@ -22,6 +24,7 @@ const daysPerWeekOptions: { value: DaysPerWeekOption; label: string }[] = [
 ];
 
 const lessonDurationOptions: { value: LessonDurationOption; label: string }[] = [
+  { value: '5', label: '5 minutes' },
   { value: '8-10', label: '8–10 minutes' },
   { value: '10-15', label: '10–15 minutes' },
   { value: '15-20', label: '15–20 minutes' },
@@ -31,6 +34,7 @@ export const CreatePlanScreen: React.FC = () => {
   const navigation = useNavigation<CreatePlanScreenNavigationProp>();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { user } = useAuthStore();
   const {
     formData,
     setFormData,
@@ -40,6 +44,14 @@ export const CreatePlanScreen: React.FC = () => {
     isFormValid,
     createPlan,
   } = useCreatePlan();
+
+  // Check authentication on mount - redirect to Login if not authenticated
+  useEffect(() => {
+    if (!user?.id) {
+      console.log('CreatePlanScreen: User not authenticated, redirecting to Login');
+      navigation.replace('Login');
+    }
+  }, [user?.id, navigation]);
   
   // Tab bar height calculation:
   // Inner content: minHeight 60 + paddingVertical md (16px top + 16px bottom) = 92px
@@ -81,7 +93,9 @@ export const CreatePlanScreen: React.FC = () => {
     // Optionally update the selection if the input matches a preset
     const numericValue = parseInt(text, 10);
     if (!isNaN(numericValue)) {
-      if (numericValue >= 8 && numericValue <= 10) {
+      if (numericValue === 5) {
+        setFormData((prev) => ({ ...prev, lessonDuration: '5' }));
+      } else if (numericValue >= 8 && numericValue <= 10) {
         setFormData((prev) => ({ ...prev, lessonDuration: '8-10' }));
       } else if (numericValue >= 10 && numericValue <= 15) {
         setFormData((prev) => ({ ...prev, lessonDuration: '10-15' }));
@@ -97,20 +111,25 @@ export const CreatePlanScreen: React.FC = () => {
   };
 
   const handleCreatePlan = async () => {
-    console.log('handleCreatePlan called', { isFormValid, isSubmitting, formData });
+    // Log current state for debugging
+    console.log('handleCreatePlan called', { 
+      isFormValid, 
+      isSubmitting, 
+      formData,
+      topicLength: formData.topicPrompt.trim().length,
+      hasDaysPerWeek: formData.daysPerWeek !== null,
+      hasLessonDuration: formData.lessonDuration !== null,
+    });
     
-    // Double-check form validity before proceeding
-    if (!isFormValid) {
-      console.warn('handleCreatePlan: Form is not valid, aborting');
-      return;
-    }
-    
+    // Skip validation check here - let the hook handle it
+    // This prevents double-checking with potentially stale closure values
     if (isSubmitting) {
       console.warn('handleCreatePlan: Already submitting, aborting');
       return;
     }
     
     try {
+      console.log('handleCreatePlan: Calling createPlan...');
       await createPlan();
       console.log('handleCreatePlan: Plan creation completed');
       
@@ -177,18 +196,6 @@ export const CreatePlanScreen: React.FC = () => {
               <Card variant="outlined" padding="md" backgroundColor="errorBackground">
                 <Text variant="bodySmall" color="error">
                   {error}
-                </Text>
-              </Card>
-            )}
-
-            {/* Debug info - remove in production */}
-            {__DEV__ && (
-              <Card variant="outlined" padding="sm" backgroundColor="backgroundSecondary">
-                <Text variant="bodySmall" color="textSecondary">
-                  Form valid: {isFormValid ? 'Yes' : 'No'} | Submitting: {isSubmitting ? 'Yes' : 'No'}
-                </Text>
-                <Text variant="bodySmall" color="textSecondary">
-                  Topic: {formData.topicPrompt.length > 0 ? '✓' : '✗'} | Days: {formData.daysPerWeek !== null ? '✓' : '✗'} | Duration: {formData.lessonDuration !== null ? '✓' : '✗'}
                 </Text>
               </Card>
             )}

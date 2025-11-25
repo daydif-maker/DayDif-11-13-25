@@ -1,8 +1,8 @@
 import { createTheme } from '@shopify/restyle';
 
-// Palette tokens - Cal AI-inspired aesthetic
+// Palette tokens - Clean, minimal aesthetic
 const palette = {
-  // Warm Gray Scale (Cal AI Backgrounds)
+  // Warm Gray Scale (Backgrounds)
   warmGray50: '#F9F9F9',   // Main background
   warmGray100: '#F5F5F5',  // Secondary background
   warmGray200: '#EFEFEF',  // Borders/Separators
@@ -22,11 +22,12 @@ const palette = {
 
   // Action Colors
   primaryBlack: '#000000', // Main action color
-  emeraldGreen: '#00BFA5', // Primary accent for play buttons, progress rings
-  deepSlateBlue: '#1A2C42', // Navigation background
+  darkTeal: '#1B4B43', // Primary accent for navigation, headers
+  brightGreen: '#22C55E', // Progress indicators, play buttons, CTAs
+  deepSlateBlue: '#1A2C42', // Navigation background, Audio Mode card
 
-  // Status Colors (Subtle/Pastel for Cal AI feel)
-  success: '#00BFA5', // Updated to Emerald Green
+  // Status Colors
+  success: '#22C55E', // Bright green for progress/success
   warning: '#FF9500',
   error: '#FF3B30',
   info: '#007AFF',
@@ -239,17 +240,23 @@ export const lightTheme = createTheme({
     borderError: palette.error,
 
     // Interactive
-    primary: palette.emeraldGreen,
-    primaryLight: '#33CDB5',
-    primaryDark: '#008C7A',
+    primary: palette.darkTeal,
+    primaryLight: '#2D6B5F',
+    primaryDark: '#0F3830',
     secondary: palette.warmGray200,
     secondaryForeground: palette.black, // Text on secondary button
-    accent: palette.emeraldGreen,
+    accent: palette.brightGreen,
+    
+    // Progress & CTAs
+    progressGreen: palette.brightGreen,
 
     // Navigation
     navBackground: palette.deepSlateBlue,
     navActive: palette.white,
     navInactive: 'rgba(255, 255, 255, 0.5)',
+    
+    // Audio Mode card
+    audioCardBackground: palette.deepSlateBlue,
 
     // Status
     success: palette.success,

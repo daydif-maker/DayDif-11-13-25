@@ -21,5 +21,8 @@ export { Chip } from './Chip';
 export { Slider } from './Slider';
 export { GoalRing } from './GoalRing';
 export { Fab } from './Fab';
+export { StatCard } from './StatCard';
+export { ContentCard } from './ContentCard';
+export { AchievementCard } from './AchievementCard';
 
 

@@ -4,10 +4,9 @@ import { Lesson } from '@store/types';
 import { getMockDailyLesson, getMockLessonQueue, getMockLessonById } from './mocks/mockLessons';
 import { planService } from './planService';
 import { episodeService } from './episodeService';
+import { USE_MOCK_DATA } from '@utils/env';
 
 type PlanLessonRow = Database['public']['Tables']['plan_lessons']['Row'];
-
-const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'false';
 
 // Helper to convert PlanLessonRow to Lesson domain object with episodes
 const mapPlanLessonToLesson = async (lesson: PlanLessonRow): Promise<Lesson> => {

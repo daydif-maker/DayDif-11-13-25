@@ -4,6 +4,7 @@ export type TodayStackParamList = {
   Today: undefined;
   LessonDetail: { lessonId: string };
   AvatarSettings: undefined;
+  Login: undefined;
   CreatePlan: undefined;
 };
 
@@ -34,6 +35,7 @@ export type OnboardingStackParamList = {
 };
 
 export type CreatePlanStackParamList = {
+  Login: undefined;
   CreatePlan: undefined;
 };
 

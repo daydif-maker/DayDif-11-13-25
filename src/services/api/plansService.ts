@@ -23,8 +23,7 @@ import {
   getMockWeeklyGoal,
 } from './mocks/mockKPIs';
 import { getMockHistory } from './mocks/mockHistory';
-
-const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'false';
+import { USE_MOCK_DATA } from '@utils/env';
 
 export const plansService = {
   /**
@@ -155,5 +154,4 @@ export const plansService = {
     }
   },
 };
-
 
