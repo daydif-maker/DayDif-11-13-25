@@ -292,7 +292,7 @@ def generate_tts(request: dict) -> dict:
             return buffer.read()
         
         def upload_to_supabase(audio_bytes: bytes, uid: str, eid: str) -> str:
-            """Upload audio to Supabase storage"""
+            """Upload audio to Supabase storage and update episode record"""
             import os
             from supabase import create_client
             
@@ -305,7 +305,51 @@ def generate_tts(request: dict) -> dict:
                 file=audio_bytes,
                 file_options={"content-type": "audio/wav"},
             )
-            return supabase.storage.from_("lesson-audio").get_public_url(file_path)
+            audio_url = supabase.storage.from_("lesson-audio").get_public_url(file_path)
+            
+            # Update the episode record with the audio path
+            print(f"📝 Updating episode {eid} with audio_path...")
+            update_result = supabase.table("episodes").update({
+                "audio_path": audio_url
+            }).eq("id", eid).execute()
+            
+            if update_result.data:
+                print(f"✅ Episode {eid} updated with audio_path")
+                
+                # Get the lesson_id from this episode to check if all episodes are done
+                episode_data = supabase.table("episodes").select("lesson_id").eq("id", eid).single().execute()
+                if episode_data.data and episode_data.data.get("lesson_id"):
+                    lesson_id = episode_data.data["lesson_id"]
+                    check_and_complete_lesson(supabase, lesson_id)
+            else:
+                print(f"⚠️ Failed to update episode {eid}")
+            
+            return audio_url
+        
+        def check_and_complete_lesson(supabase, lesson_id: str):
+            """Check if all episodes for a lesson have audio and mark lesson as completed"""
+            print(f"🔍 Checking if all episodes for lesson {lesson_id} have audio...")
+            
+            # Get all episodes for this lesson
+            episodes_result = supabase.table("episodes").select("id, audio_path").eq("lesson_id", lesson_id).execute()
+            
+            if not episodes_result.data:
+                print(f"⚠️ No episodes found for lesson {lesson_id}")
+                return
+            
+            episodes = episodes_result.data
+            total_episodes = len(episodes)
+            episodes_with_audio = sum(1 for ep in episodes if ep.get("audio_path"))
+            
+            print(f"📊 Lesson {lesson_id}: {episodes_with_audio}/{total_episodes} episodes have audio")
+            
+            # If all episodes have audio, mark lesson as completed
+            if episodes_with_audio == total_episodes:
+                print(f"🎉 All episodes ready! Marking lesson {lesson_id} as completed...")
+                supabase.table("plan_lessons").update({
+                    "status": "completed"
+                }).eq("id", lesson_id).execute()
+                print(f"✅ Lesson {lesson_id} marked as completed")
 
         # Mode 1: Multi-speaker dialogue
         if transcript and isinstance(transcript, list):

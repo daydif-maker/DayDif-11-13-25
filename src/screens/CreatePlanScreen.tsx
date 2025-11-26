@@ -334,13 +334,13 @@ export const CreatePlanScreen: React.FC = () => {
               console.log('Button pressed!', { isFormValid, isSubmitting, formData });
               handleCreatePlan();
             }}
-            disabled={!isFormValid || isSubmitting}
+            disabled={!isFormValid}
             loading={isSubmitting}
-            backgroundColor={(!isFormValid || isSubmitting) ? 'border' : 'black'}
+            backgroundColor={!isFormValid ? 'border' : 'black'}
             borderRadius="full"
             minHeight={54}
           >
-            Continue
+            {isSubmitting ? 'Creating plan...' : 'Continue'}
           </Button>
         </Box>
       </KeyboardAvoidingView>

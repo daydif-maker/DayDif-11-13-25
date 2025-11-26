@@ -105,6 +105,7 @@ export const planService = {
 
   /**
    * Get today's lesson for a user
+   * Filters by the active plan to ensure we get the correct lesson
    */
   async getTodayLesson(userId: string, date?: string): Promise<Lesson | null> {
     if (USE_MOCK_DATA) {
@@ -112,12 +113,36 @@ export const planService = {
     }
 
     try {
+      // First, get the active plan for this user
+      const { data: activePlan, error: planError } = await supabase
+        .from('plans')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (planError) {
+        if (planError.code === 'PGRST116') {
+          // No active plan found
+          return null;
+        }
+        throw planError;
+      }
+
+      if (!activePlan) return null;
+
       const today = date || new Date().toISOString().split('T')[0];
+      
+      // Query lessons filtering by the active plan and completed status
       const { data, error } = await supabase
         .from('plan_lessons')
         .select('*')
         .eq('user_id', userId)
+        .eq('plan_id', activePlan.id)
         .eq('date', today)
+        .eq('status', 'completed')
         .order('day_index', { ascending: true })
         .limit(1)
         .single();

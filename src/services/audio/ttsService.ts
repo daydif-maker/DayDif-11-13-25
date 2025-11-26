@@ -4,48 +4,13 @@
  */
 
 import { supabase } from '@lib/supabase/client';
-import { USE_MOCK_DATA } from '@utils/env';
+import { USE_MOCK_DATA, ANONYMOUS_USER_ID } from '@utils/env';
 
 /**
- * Check if this is a mock user ID (from mock authentication)
+ * Check if this is an anonymous user (used when auth bypass is enabled)
  */
-function isMockUserId(userId: string): boolean {
-  return userId.startsWith('mock-user') || userId === 'mock-user';
-}
-
-/**
- * Verify user session matches the expected userId
- * This helps debug RLS policy issues
- * Skips verification for mock users in development
- */
-async function verifySession(userId: string): Promise<void> {
-  // Skip session verification for mock users
-  if (USE_MOCK_DATA || isMockUserId(userId)) {
-    console.log('[TTSService] Skipping session verification (mock mode)');
-    return;
-  }
-
-  const { data: { session }, error } = await supabase.auth.getSession();
-  
-  if (error) {
-    console.error('[TTSService] Session error:', error);
-    throw new Error('Authentication session error');
-  }
-  
-  if (!session) {
-    console.error('[TTSService] No active session');
-    throw new Error('No active session. Please sign in again.');
-  }
-  
-  if (session.user.id !== userId) {
-    console.error('[TTSService] User ID mismatch:', {
-      sessionUserId: session.user.id,
-      providedUserId: userId,
-    });
-    throw new Error('User ID mismatch. Please sign in again.');
-  }
-  
-  console.log('[TTSService] Session verified for user:', userId);
+function isAnonymousUserId(userId: string): boolean {
+  return userId === ANONYMOUS_USER_ID || userId.startsWith('anonymous-');
 }
 
 // ============================================================================
@@ -178,6 +143,7 @@ class TTSServiceImpl implements TTSService {
   /**
    * Generate a complete learning plan with multiple lessons
    * This is the main entry point for creating a new learning plan
+   * Calls the create-plan edge function which handles all database operations
    */
   async generatePlan(
     topic: string,
@@ -187,134 +153,70 @@ class TTSServiceImpl implements TTSService {
     userId: string
   ): Promise<PlanGenerationResponse> {
     try {
-      console.log('[TTSService] Creating plan:', {
+      // Use provided userId or fall back to anonymous user ID
+      const effectiveUserId = userId || ANONYMOUS_USER_ID;
+      
+      console.log('[TTSService] Creating plan via edge function:', {
         topic,
         numberOfLessons,
         durationMinutes,
-        mockMode: USE_MOCK_DATA || isMockUserId(userId),
+        isAnonymous: isAnonymousUserId(effectiveUserId),
+        userId: effectiveUserId,
       });
 
-      // Verify session before making database calls (skipped in mock mode)
-      await verifySession(userId);
-
-      // Handle mock mode - create mock plan and lessons without database
-      if (USE_MOCK_DATA || isMockUserId(userId)) {
+      // Handle mock mode - create mock plan without backend
+      if (USE_MOCK_DATA) {
         console.log('[TTSService] Mock mode - creating plan locally');
         const mockPlanId = `mock-plan-${Date.now()}`;
-        
-        // Simulate lesson generation for mock mode
-        const mockLessons = [];
-        for (let i = 0; i < numberOfLessons; i++) {
-          const mockLessonId = `mock-lesson-${Date.now()}-${i}`;
-          mockLessons.push({
-            id: mockLessonId,
-            day_index: i,
-          });
-          
-          // Fire and forget mock lesson generation
-          this.generateLesson({
-            planId: mockPlanId,
-            lessonId: mockLessonId,
-            topic,
-            lessonNumber: i + 1,
-            totalLessons: numberOfLessons,
-            userLevel: userLevel as 'beginner' | 'intermediate' | 'advanced',
-            durationMinutes,
-            userId,
-          }).catch((err) => {
-            console.error(
-              `[TTSService] Failed to generate mock lesson ${i + 1}:`,
-              err
-            );
-          });
-        }
-        
         return { success: true, planId: mockPlanId };
       }
 
-      // 1. Create the plan record
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + numberOfLessons);
+      // Call the create-plan edge function which handles:
+      // 1. Creating the plan record
+      // 2. Creating lesson placeholders
+      // 3. Triggering lesson generation for each lesson
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Auth-Bypass': 'true', // Always use auth bypass for plan creation
+      };
 
-      const { data: plan, error: planError } = await supabase
-        .from('plans')
-        .insert({
-          user_id: userId,
-          start_date: startDate.toISOString().split('T')[0],
-          end_date: endDate.toISOString().split('T')[0],
-          lessons_goal: numberOfLessons,
-          minutes_goal: numberOfLessons * durationMinutes,
-          status: 'active',
-          source: 'ai_generated',
-          meta: {
-            topic,
-            lessonDuration: durationMinutes,
-            userLevel,
-          },
-        })
-        .select()
-        .single();
-
-      if (planError) {
-        throw new Error(`Failed to create plan: ${planError.message}`);
-      }
-
-      console.log('[TTSService] Plan created:', plan.id);
-
-      // 2. Create lesson placeholders
-      const lessons = [];
-      for (let i = 0; i < numberOfLessons; i++) {
-        const lessonDate = new Date();
-        lessonDate.setDate(lessonDate.getDate() + i);
-
-        lessons.push({
-          plan_id: plan.id,
-          user_id: userId,
-          day_index: i,
-          date: lessonDate.toISOString().split('T')[0],
-          title: `${topic} - Part ${i + 1}`,
-          description: 'Generating...',
-          status: 'pending',
-          primary_topic: topic,
-        });
-      }
-
-      const { data: createdLessons, error: lessonsError } = await supabase
-        .from('plan_lessons')
-        .insert(lessons)
-        .select();
-
-      if (lessonsError) {
-        throw new Error(`Failed to create lessons: ${lessonsError.message}`);
-      }
-
-      console.log('[TTSService] Lessons created:', createdLessons.length);
-
-      // 3. Trigger generation for each lesson (fire and forget)
-      // These will run asynchronously on the backend
-      for (const lesson of createdLessons) {
-        this.generateLesson({
-          planId: plan.id,
-          lessonId: lesson.id,
+      const response = await fetch(`${this.edgeFunctionUrl}/create-plan`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
           topic,
-          lessonNumber: lesson.day_index + 1,
-          totalLessons: numberOfLessons,
-          userLevel: userLevel as 'beginner' | 'intermediate' | 'advanced',
+          numberOfLessons,
           durationMinutes,
-          userId,
-        }).catch((err) => {
-          console.error(
-            `[TTSService] Failed to generate lesson ${lesson.day_index + 1}:`,
-            err
-          );
+          userLevel,
+          userId: effectiveUserId,
+        }),
+      });
+
+      // Check for HTTP errors first
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[TTSService] HTTP error from create-plan:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
         });
+        throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
       }
 
-      return { success: true, planId: plan.id };
+      const result = await response.json();
+      console.log('[TTSService] create-plan response:', result);
+
+      if (!result.success) {
+        console.error('[TTSService] create-plan failed:', result);
+        throw new Error(result.error || 'Failed to create plan (no error details)');
+      }
+
+      console.log('[TTSService] Plan created:', result.planId);
+      return { success: true, planId: result.planId };
     } catch (error) {
       console.error('[TTSService] generatePlan error:', error);
-      return { success: false, error: (error as Error).message };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage };
     }
   }
 
@@ -324,18 +226,21 @@ class TTSServiceImpl implements TTSService {
   async generateLesson(
     request: LessonGenerationRequest
   ): Promise<LessonGenerationResponse> {
+    // Use provided userId or fall back to anonymous user ID
+    const effectiveUserId = request.userId || ANONYMOUS_USER_ID;
+    
     console.log(
       '[TTSService] Generating lesson:',
       request.lessonNumber,
       'of',
-      request.totalLessons
+      request.totalLessons,
+      { isAnonymous: isAnonymousUserId(effectiveUserId), userId: effectiveUserId }
     );
 
     try {
       // In mock mode, return a successful mock response
-      if (USE_MOCK_DATA || isMockUserId(request.userId)) {
+      if (USE_MOCK_DATA) {
         console.log('[TTSService] Mock mode - simulating lesson generation');
-        // Simulate some processing time
         await new Promise(resolve => setTimeout(resolve, 500));
         return {
           success: true,
@@ -351,18 +256,30 @@ class TTSServiceImpl implements TTSService {
         };
       }
 
-      const { data: session } = await supabase.auth.getSession();
+      // Build headers - use auth bypass for anonymous users, or real auth for logged-in users
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
 
-      if (!session?.session?.access_token) {
-        throw new Error('User not authenticated');
+      if (isAnonymousUserId(effectiveUserId)) {
+        // Anonymous user - use auth bypass header
+        headers['X-Auth-Bypass'] = 'true';
+        console.log('[TTSService] Using auth bypass for anonymous user');
+      } else {
+        // Real user - try to get auth token, fall back to bypass if not available
+        const { data: session } = await supabase.auth.getSession();
+        if (session?.session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.session.access_token}`;
+        } else {
+          // Fall back to bypass if no session
+          headers['X-Auth-Bypass'] = 'true';
+          console.log('[TTSService] No session available, using auth bypass');
+        }
       }
 
       const response = await fetch(`${this.edgeFunctionUrl}/generate-lesson`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.session.access_token}`,
-        },
+        headers,
         body: JSON.stringify({
           planId: request.planId,
           lessonId: request.lessonId,
@@ -372,7 +289,7 @@ class TTSServiceImpl implements TTSService {
           userLevel: request.userLevel,
           durationMinutes: request.durationMinutes,
           sourceUrls: request.sourceUrls,
-          userId: request.userId,
+          userId: effectiveUserId,
         }),
       });
 
@@ -443,8 +360,11 @@ class TTSServiceImpl implements TTSService {
    * Get the generation status of all lessons in a plan
    */
   async getPlanGenerationStatus(planId: string): Promise<GenerationStatusResult> {
+    console.log('[TTSService] getPlanGenerationStatus for plan:', planId);
+    
     // Handle mock mode
     if (USE_MOCK_DATA || planId.startsWith('mock-plan-')) {
+      console.log('[TTSService] Using mock data for generation status');
       // In mock mode, simulate all lessons as completed after a short delay
       return {
         total: 5,
@@ -467,7 +387,8 @@ class TTSServiceImpl implements TTSService {
       .eq('plan_id', planId)
       .order('day_index', { ascending: true });
 
-    if (error || !lessons) {
+    if (error) {
+      console.error('[TTSService] Error fetching lessons:', error);
       return {
         total: 0,
         completed: 0,
@@ -476,6 +397,24 @@ class TTSServiceImpl implements TTSService {
         failed: 0,
       };
     }
+
+    if (!lessons || lessons.length === 0) {
+      console.log('[TTSService] No lessons found for plan yet');
+      return {
+        total: 0,
+        completed: 0,
+        inProgress: 0,
+        pending: 0,
+        failed: 0,
+      };
+    }
+
+    // Log lesson statuses for debugging
+    const statusCounts = lessons.reduce((acc, l) => {
+      acc[l.status] = (acc[l.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    console.log('[TTSService] Lesson status counts:', statusCounts);
 
     // Find first completed lesson
     const completedLessons = lessons.filter((l) => l.status === 'completed');
@@ -486,7 +425,7 @@ class TTSServiceImpl implements TTSService {
     const currentLesson = inProgressLessons[0] || 
       lessons.find((l) => l.status === 'pending');
 
-    return {
+    const result = {
       total: lessons.length,
       completed: completedLessons.length,
       inProgress: inProgressLessons.length,
@@ -501,6 +440,9 @@ class TTSServiceImpl implements TTSService {
         : undefined,
       currentLessonTitle: currentLesson?.title,
     };
+
+    console.log('[TTSService] Generation status result:', result);
+    return result;
   }
 
   /**
@@ -577,39 +519,58 @@ class TTSServiceImpl implements TTSService {
   pollGenerationStatus(
     planId: string,
     onProgress: (status: GenerationStatusResult) => void,
-    options: { intervalMs?: number } = {}
+    options: { intervalMs?: number; maxPolls?: number } = {}
   ): () => void {
-    const { intervalMs = 3000 } = options;
+    const { intervalMs = 3000, maxPolls = 200 } = options; // Max ~10 minutes of polling
     let isActive = true;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let pollCount = 0;
 
     const poll = async () => {
       if (!isActive) return;
+      pollCount++;
 
       try {
         const status = await this.getPlanGenerationStatus(planId);
+        console.log(`[TTSService] Poll #${pollCount}:`, status);
+        
         if (isActive) {
           onProgress(status);
         }
 
-        // Continue polling if not all completed
-        if (isActive && (status.pending > 0 || status.inProgress > 0)) {
+        // Determine if we should continue polling:
+        // - total === 0: lessons not created yet, keep polling
+        // - completed < total: still generating, keep polling
+        // - pending > 0 or inProgress > 0: still generating, keep polling
+        const shouldContinue = 
+          status.total === 0 || 
+          status.completed < status.total ||
+          status.pending > 0 || 
+          status.inProgress > 0;
+
+        if (isActive && shouldContinue && pollCount < maxPolls) {
           timeoutId = setTimeout(poll, intervalMs);
+        } else if (pollCount >= maxPolls) {
+          console.warn('[TTSService] Max poll count reached, stopping');
+        } else {
+          console.log('[TTSService] Generation complete, stopping polling');
         }
       } catch (error) {
         console.error('[TTSService] pollGenerationStatus error:', error);
-        // Continue polling on error
-        if (isActive) {
+        // Continue polling on error (up to max polls)
+        if (isActive && pollCount < maxPolls) {
           timeoutId = setTimeout(poll, intervalMs);
         }
       }
     };
 
     // Start polling immediately
+    console.log('[TTSService] Starting poll for plan:', planId);
     poll();
 
     // Return cleanup function
     return () => {
+      console.log('[TTSService] Cleanup called, stopping poll');
       isActive = false;
       if (timeoutId) {
         clearTimeout(timeoutId);

@@ -11,7 +11,7 @@ import * as Haptics from 'expo-haptics';
 
 export const GenerationScreen: React.FC = () => {
   const { theme } = useTheme();
-  const { generationProgress, getGenerationPercentage, generatingPlanId, updateGenerationProgress } = useUserStateStore();
+  const { generationProgress, getGenerationPercentage, generatingPlanId, updateGenerationProgress, completeGeneration } = useUserStateStore();
   const [failedLessons, setFailedLessons] = useState<FailedLesson[]>([]);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryingLessonId, setRetryingLessonId] = useState<string | null>(null);
@@ -19,6 +19,40 @@ export const GenerationScreen: React.FC = () => {
   // Animation for pulsing effect
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Poll for generation status updates
+  useEffect(() => {
+    if (!generatingPlanId) return;
+
+    console.log('[GenerationScreen] Starting polling for plan:', generatingPlanId);
+    
+    const cleanup = ttsService.pollGenerationStatus(
+      generatingPlanId,
+      (status) => {
+        console.log('[GenerationScreen] Poll update:', status);
+        updateGenerationProgress({
+          total: status.total,
+          completed: status.completed,
+          inProgress: status.inProgress,
+          pending: status.pending,
+          failed: status.failed,
+          currentLessonTitle: status.currentLessonTitle,
+        });
+
+        // Auto-complete generation when all lessons are done
+        if (status.total > 0 && status.completed === status.total) {
+          console.log('[GenerationScreen] All lessons completed, completing generation');
+          completeGeneration();
+        }
+      },
+      { intervalMs: 3000 }
+    );
+
+    return () => {
+      console.log('[GenerationScreen] Stopping polling');
+      cleanup();
+    };
+  }, [generatingPlanId, updateGenerationProgress, completeGeneration]);
 
   useEffect(() => {
     // Fade in animation

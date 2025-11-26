@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
-import { USE_MOCK_DATA } from '@utils/env';
+import { USE_MOCK_DATA, AUTH_BYPASS_ENABLED, ANONYMOUS_USER_ID } from '@utils/env';
 
 // Mock user for development/testing when Supabase is not configured
 const createMockUser = (email: string, displayName?: string): User => ({
@@ -15,11 +15,30 @@ const createMockUser = (email: string, displayName?: string): User => ({
   created_at: new Date().toISOString(),
 });
 
+// Anonymous user for auth bypass mode
+const createAnonymousUser = (): User => ({
+  id: ANONYMOUS_USER_ID,
+  email: 'anonymous@daydif.local',
+  app_metadata: { provider: 'anonymous' },
+  user_metadata: { display_name: 'Anonymous User', is_anonymous: true },
+  aud: 'authenticated',
+  created_at: new Date().toISOString(),
+});
+
 const createMockSession = (user: User): Session => ({
   access_token: 'mock-access-token',
   refresh_token: 'mock-refresh-token',
   expires_in: 3600,
   expires_at: Math.floor(Date.now() / 1000) + 3600,
+  token_type: 'bearer',
+  user,
+});
+
+const createAnonymousSession = (user: User): Session => ({
+  access_token: 'anonymous-bypass-token',
+  refresh_token: 'anonymous-bypass-refresh',
+  expires_in: 86400, // 24 hours
+  expires_at: Math.floor(Date.now() / 1000) + 86400,
   token_type: 'bearer',
   user,
 });
@@ -223,11 +242,59 @@ export const useAuthStore = create<AuthState>()(
           const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
           const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
           
-          if (USE_MOCK_DATA || !supabaseUrl || !supabaseKey) {
-            console.log('Mock mode or Supabase not configured, skipping auth initialization');
+          // If Supabase is configured, try to get existing session first
+          if (supabaseUrl && supabaseKey && !USE_MOCK_DATA) {
+            try {
+              // Add timeout to prevent hanging
+              const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Auth timeout')), 3000);
+              });
+
+              // Get current session with timeout
+              const sessionPromise = supabase.auth.getSession();
+              
+              const {
+                data: { session },
+                error,
+              } = await Promise.race([sessionPromise, timeoutPromise as any]).catch(() => ({
+                data: { session: null },
+                error: null,
+              }));
+
+              if (!error && session?.user) {
+                // User has an existing session
+                console.log('Found existing auth session');
+                set({
+                  user: session.user,
+                  session: session,
+                  isLoading: false,
+                  isInitialized: true,
+                  error: null,
+                });
+
+                // Set up auth state change listener
+                supabase.auth.onAuthStateChange((_event, newSession) => {
+                  set({
+                    user: newSession?.user ?? null,
+                    session: newSession,
+                  });
+                });
+                return;
+              }
+            } catch (err) {
+              console.warn('Auth session check failed, falling back to anonymous:', err);
+            }
+          }
+
+          // No existing session or auth bypass enabled - use anonymous user
+          // This allows the app to work without authentication for development
+          if (AUTH_BYPASS_ENABLED) {
+            console.log('Using anonymous user (auth bypass enabled)');
+            const anonymousUser = createAnonymousUser();
+            const anonymousSession = createAnonymousSession(anonymousUser);
             set({
-              user: null,
-              session: null,
+              user: anonymousUser,
+              session: anonymousSession,
               isLoading: false,
               isInitialized: true,
               error: null,
@@ -235,40 +302,14 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
           
-          // Add timeout to prevent hanging
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Auth timeout')), 3000);
-          });
-
-          // Get current session with timeout
-          const sessionPromise = supabase.auth.getSession();
-          
-          const {
-            data: { session },
-            error,
-          } = await Promise.race([sessionPromise, timeoutPromise as any]).catch(() => ({
-            data: { session: null },
-            error: null,
-          }));
-
-          if (error) {
-            console.warn('Auth error:', error);
-          }
-
+          // No session and auth bypass not enabled - user needs to sign in
+          console.log('No auth session, user will need to sign in');
           set({
-            user: session?.user ?? null,
-            session: session,
+            user: null,
+            session: null,
             isLoading: false,
             isInitialized: true,
             error: null,
-          });
-
-          // Set up auth state change listener
-          supabase.auth.onAuthStateChange((_event, session) => {
-            set({
-              user: session?.user ?? null,
-              session: session,
-            });
           });
         } catch (error) {
           const errorMessage =
@@ -276,13 +317,27 @@ export const useAuthStore = create<AuthState>()(
               ? error.message
               : 'Failed to bootstrap auth';
           console.warn('Auth bootstrap error:', errorMessage);
-          set({
-            user: null,
-            session: null,
-            isLoading: false,
-            isInitialized: true,
-            error: null, // Don't block app with auth errors
-          });
+          
+          // On error, fall back to anonymous user if bypass is enabled
+          if (AUTH_BYPASS_ENABLED) {
+            const anonymousUser = createAnonymousUser();
+            const anonymousSession = createAnonymousSession(anonymousUser);
+            set({
+              user: anonymousUser,
+              session: anonymousSession,
+              isLoading: false,
+              isInitialized: true,
+              error: null,
+            });
+          } else {
+            set({
+              user: null,
+              session: null,
+              isLoading: false,
+              isInitialized: true,
+              error: null, // Don't block app with auth errors
+            });
+          }
         }
       },
 

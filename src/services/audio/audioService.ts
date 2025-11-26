@@ -123,13 +123,17 @@ class AudioServiceImpl implements AudioService {
    * Load an episode's audio for playback
    */
   async loadEpisode(episode: Episode): Promise<void> {
-    if (!episode.audioPath) {
-      console.error('[AudioService] Episode has no audio path:', episode.id);
-      this.updateState({ error: 'No audio available for this episode' });
+    // Check for missing or empty audio path
+    if (!episode.audioPath || episode.audioPath.trim() === '') {
+      console.error('[AudioService] Episode has no audio path:', episode.id, episode.audioPath);
+      this.updateState({ 
+        error: 'Audio not available yet. The lesson may still be generating.',
+        isLoading: false,
+      });
       return;
     }
 
-    console.log('[AudioService] Loading episode:', episode.id, episode.audioPath);
+    console.log('[AudioService] Loading episode:', episode.id, 'URL:', episode.audioPath);
     
     // Unload any existing sound
     await this.unload();
@@ -214,7 +218,7 @@ class AudioServiceImpl implements AudioService {
    */
   async play(): Promise<void> {
     if (!this.sound) {
-      console.warn('[AudioService] No sound loaded');
+      // No-op when no sound is loaded - this is expected when playback is requested before loading
       return;
     }
 
@@ -235,7 +239,7 @@ class AudioServiceImpl implements AudioService {
    */
   async pause(): Promise<void> {
     if (!this.sound) {
-      console.warn('[AudioService] No sound loaded');
+      // No-op when no sound is loaded
       return;
     }
 
@@ -260,7 +264,7 @@ class AudioServiceImpl implements AudioService {
    */
   async stop(): Promise<void> {
     if (!this.sound) {
-      console.warn('[AudioService] No sound loaded');
+      // No-op when no sound is loaded
       return;
     }
 
@@ -283,7 +287,7 @@ class AudioServiceImpl implements AudioService {
    */
   async seek(position: number): Promise<void> {
     if (!this.sound) {
-      console.warn('[AudioService] No sound loaded');
+      // No-op when no sound is loaded
       return;
     }
 

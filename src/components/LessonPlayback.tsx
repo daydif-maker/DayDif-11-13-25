@@ -40,6 +40,7 @@ export const LessonPlayback: React.FC<LessonPlaybackProps> = ({
   const [isLoadingEpisodes, setIsLoadingEpisodes] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [playbackRate, setPlaybackRate] = useState(1.0);
+  const [isAudioGenerating, setIsAudioGenerating] = useState(false);
 
   const iconColorPrimary = useIconColor('primary');
   const iconColorInverse = useIconColor('inverse');
@@ -60,38 +61,72 @@ export const LessonPlayback: React.FC<LessonPlaybackProps> = ({
     };
   }, [progressSeconds, updateProgress]);
 
+  // Function to load episodes - extracted so it can be called for refresh
+  const loadEpisodes = useCallback(async (isRefresh = false) => {
+    if (!isRefresh) {
+      setIsLoadingEpisodes(true);
+    }
+    setError(null);
+    
+    try {
+      console.log('[LessonPlayback] Loading episodes for lesson:', lesson.id, isRefresh ? '(refresh)' : '');
+      const lessonEpisodes = await episodeService.getEpisodesForLesson(lesson.id);
+      
+      // Log episode details for debugging
+      console.log('[LessonPlayback] Loaded episodes:', lessonEpisodes.length);
+      lessonEpisodes.forEach((ep, i) => {
+        console.log(`  Episode ${i + 1}: ${ep.title}, audioPath: ${ep.audioPath ? 'YES' : 'NO'}`);
+      });
+      
+      setEpisodes(lessonEpisodes);
+      
+      if (lessonEpisodes.length > 0) {
+        // Find first episode with audio, or use first episode
+        const firstWithAudio = lessonEpisodes.find(ep => ep.audioPath);
+        const episodeToUse = firstWithAudio || lessonEpisodes[0];
+        const episodeIndex = firstWithAudio ? lessonEpisodes.indexOf(firstWithAudio) : 0;
+        
+        setCurrentEpisode(episodeToUse);
+        setCurrentEpisodeIndex(episodeIndex);
+        
+        // Warn if no episodes have audio
+        const episodesWithAudio = lessonEpisodes.filter(ep => ep.audioPath).length;
+        if (episodesWithAudio === 0) {
+          console.warn('[LessonPlayback] No episodes have audio yet - audio may still be generating');
+          setIsAudioGenerating(true);
+          setError('Audio is still being generated. Please wait...');
+        } else {
+          setIsAudioGenerating(false);
+          if (episodesWithAudio < lessonEpisodes.length) {
+            console.log(`[LessonPlayback] ${episodesWithAudio}/${lessonEpisodes.length} episodes have audio`);
+          }
+        }
+      } else {
+        setError('No audio episodes available for this lesson');
+      }
+    } catch (err) {
+      console.error('Failed to load episodes:', err);
+      setError('Failed to load lesson audio');
+    } finally {
+      setIsLoadingEpisodes(false);
+    }
+  }, [lesson.id, setCurrentEpisode]);
+
   // Load episodes when lesson changes
   useEffect(() => {
-    const loadEpisodes = async () => {
-      setIsLoadingEpisodes(true);
-      setError(null);
-      
-      try {
-        const lessonEpisodes = await episodeService.getEpisodesForLesson(lesson.id);
-        setEpisodes(lessonEpisodes);
-        
-        if (lessonEpisodes.length > 0) {
-          // Set first episode as current
-          setCurrentEpisode(lessonEpisodes[0]);
-          setCurrentEpisodeIndex(0);
-        } else {
-          setError('No audio episodes available for this lesson');
-        }
-      } catch (err) {
-        console.error('Failed to load episodes:', err);
-        setError('Failed to load lesson audio');
-      } finally {
-        setIsLoadingEpisodes(false);
-      }
-    };
-
     loadEpisodes();
 
     // Cleanup on unmount
     return () => {
       audioService.unload();
     };
-  }, [lesson.id, setCurrentEpisode]);
+  }, [loadEpisodes]);
+
+  // Refresh handler for when audio is generating
+  const handleRefresh = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    loadEpisodes(true);
+  }, [loadEpisodes]);
 
   const handlePlayPause = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -103,7 +138,23 @@ export const LessonPlayback: React.FC<LessonPlaybackProps> = ({
       } else {
         // If we have a current episode but no sound loaded, load it first
         const currentEp = episodes[currentEpisodeIndex];
-        if (currentEp && (!audioState.currentEpisodeId || audioState.currentEpisodeId !== currentEp.id)) {
+        
+        if (!currentEp) {
+          console.error('[LessonPlayback] No episode available at index:', currentEpisodeIndex);
+          setError('No audio episode available');
+          return;
+        }
+        
+        // Check if episode has audio
+        if (!currentEp.audioPath) {
+          console.error('[LessonPlayback] Episode has no audio path:', currentEp.id, currentEp.title);
+          setError('Audio is still being generated. Please wait a moment and try again.');
+          return;
+        }
+        
+        console.log('[LessonPlayback] Loading episode:', currentEp.id, 'audio:', currentEp.audioPath);
+        
+        if (!audioState.currentEpisodeId || audioState.currentEpisodeId !== currentEp.id) {
           await audioService.loadEpisode(currentEp);
           
           // Start session tracking
@@ -287,11 +338,48 @@ export const LessonPlayback: React.FC<LessonPlaybackProps> = ({
           </Box>
         )}
 
-        {/* Error message */}
+        {/* Error message from audio service */}
         {audioState.error && (
           <Box backgroundColor="error" padding="sm" borderRadius="sm">
             <Text variant="caption" color="textInverse">
               {audioState.error}
+            </Text>
+          </Box>
+        )}
+
+        {/* Audio generating message with refresh button */}
+        {error && isAudioGenerating && (
+          <Box backgroundColor="backgroundSecondary" padding="md" borderRadius="md" alignItems="center" gap="sm">
+            <Box flexDirection="row" alignItems="center" gap="sm">
+              <ActivityIndicator size="small" color={iconColorPrimary} />
+              <Text variant="body" color="textSecondary">
+                {error}
+              </Text>
+            </Box>
+            <TouchableOpacity onPress={handleRefresh}>
+              <Box
+                flexDirection="row"
+                alignItems="center"
+                gap="xs"
+                paddingHorizontal="md"
+                paddingVertical="sm"
+                backgroundColor="primary"
+                borderRadius="sm"
+              >
+                <Ionicons name="refresh" size={16} color={iconColorInverse} />
+                <Text variant="caption" fontWeight="600" color="textInverse">
+                  Check Again
+                </Text>
+              </Box>
+            </TouchableOpacity>
+          </Box>
+        )}
+
+        {/* Non-generating error message */}
+        {error && !isAudioGenerating && (
+          <Box backgroundColor="error" padding="sm" borderRadius="sm">
+            <Text variant="caption" color="textInverse">
+              {error}
             </Text>
           </Box>
         )}

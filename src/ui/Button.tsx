@@ -92,7 +92,7 @@ export const Button: React.FC<ButtonProps> = ({
         alignItems="center"
         justifyContent="center"
         minHeight={48}
-        opacity={disabled ? 0.5 : 1}
+        opacity={disabled && !loading ? 0.5 : 1}
         width={variant === 'primary' && !props.width ? '100%' : undefined}
         {...getVariantStyles()}
         {...props}

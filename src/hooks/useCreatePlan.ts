@@ -3,12 +3,11 @@ import { useAuthStore } from '@store';
 import { usePlansStore } from '@store';
 import { useUserStateStore } from '@store';
 import { planService } from '@services/api/planService';
-import { profileService } from '@services/api/profileService';
 import { lessonService } from '@services/api/lessonService';
 import { ttsService, GenerationStatusResult } from '@services/audio/ttsService';
 import { useLessonsStore } from '@store';
 import { generateMockLessonsForPlan } from '@services/api/mocks/mockLessons';
-import { USE_MOCK_DATA } from '@utils/env';
+import { USE_MOCK_DATA, AUTH_BYPASS_ENABLED, ANONYMOUS_USER_ID } from '@utils/env';
 
 export type DaysPerWeekOption = 1 | 2 | 3 | 4 | 5;
 export type LessonDurationOption = '5' | '8-10' | '10-15' | '15-20';
@@ -114,39 +113,15 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
       setIsSubmitting(true);
       setError(null);
 
-      // Use user ID if available, otherwise use mock user ID for mock data mode
-      const userId = user?.id ?? (USE_MOCK_DATA ? 'mock-user' : undefined);
-
-      if (!userId) {
-        const errorMsg = 'You must be logged in to create a plan';
-        console.warn('createPlan: User not authenticated', errorMsg);
-        setError(errorMsg);
-        isSubmittingRef.current = false;
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Save learning preferences only if we have a real user (not mock mode)
-      if (user?.id && !USE_MOCK_DATA) {
-        try {
-          await profileService.updateLearningPreferences(userId, {
-            primary_goal: formData.topicPrompt.trim(),
-            topics: [formData.topicPrompt.trim()],
-            lessons_per_week: lessonCount,
-            lesson_duration_minutes:
-              formData.lessonDuration === '5'
-                ? 5
-                : formData.lessonDuration === '8-10'
-                ? 9
-                : formData.lessonDuration === '10-15'
-                ? 12
-                : 17,
-            commute_days: [],
-          });
-        } catch (prefError) {
-          console.warn('Failed to update learning preferences, continuing with plan creation:', prefError);
-        }
-      }
+      // Simplified auth: Use real user if available, otherwise use anonymous user ID
+      // This allows the app to work without authentication during development
+      const userId = user?.id ?? ANONYMOUS_USER_ID;
+      
+      console.log('createPlan: Using userId:', userId, { 
+        isAnonymous: userId === ANONYMOUS_USER_ID,
+        authBypass: AUTH_BYPASS_ENABLED, 
+        mockData: USE_MOCK_DATA 
+      });
 
       // Calculate duration in minutes
       const durationMinutes =

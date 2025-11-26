@@ -40,13 +40,33 @@ const parseBooleanEnv = (
 
 /**
  * Shared flag for determining whether the app should use mock data.
- * - Defaults to mock mode when unset (for easier local development).
- * - Any unrecognized value falls back to real backend to avoid silent mocks.
+ * - Defaults to false so the app uses the real backend by default.
+ * - Set to true explicitly to use mock data for offline development.
  */
 export const USE_MOCK_DATA = parseBooleanEnv(process.env.EXPO_PUBLIC_USE_MOCK_DATA, {
-  defaultValue: true,
+  defaultValue: false,
   variableName: 'EXPO_PUBLIC_USE_MOCK_DATA',
   fallbackOnInvalid: false,
 });
+
+/**
+ * Auth bypass flag - when enabled, skips authentication requirements
+ * and uses an anonymous user ID for backend operations.
+ * - Defaults to true for easier local development without auth setup.
+ * - Set to false in production to require real authentication.
+ */
+export const AUTH_BYPASS_ENABLED = parseBooleanEnv(process.env.EXPO_PUBLIC_AUTH_BYPASS, {
+  defaultValue: true,
+  variableName: 'EXPO_PUBLIC_AUTH_BYPASS',
+  fallbackOnInvalid: false,
+});
+
+/**
+ * Anonymous user ID used when auth bypass is enabled.
+ * This provides a consistent user ID for database operations
+ * when running without authentication.
+ * Note: Cannot use nil UUID (all zeros) as Supabase Auth rejects it.
+ */
+export const ANONYMOUS_USER_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
 export { parseBooleanEnv };

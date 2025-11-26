@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Screen, Stack, Text, Button, LoadingState } from '@ui';
-import { Box } from '@ui/primitives';
 import { useNavigation } from '@react-navigation/native';
 import { useUserStateStore } from '@store';
 import { useAuthStore } from '@store';
 import { planService } from '@services/api/planService';
 import * as Haptics from 'expo-haptics';
-import { USE_MOCK_DATA } from '@utils/env';
+import { ANONYMOUS_USER_ID } from '@utils/env';
 
 type GeneratePlanScreenProps = {
   // Navigation will handle this
@@ -43,7 +42,8 @@ export const GeneratePlanScreen: React.FC<GeneratePlanScreenProps> = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const userId = user?.id ?? (USE_MOCK_DATA ? 'mock-user' : undefined);
+  // Use real user ID if available, otherwise use anonymous user ID for development
+  const userId = user?.id ?? ANONYMOUS_USER_ID;
 
   useEffect(() => {
     const generatePlan = async () => {

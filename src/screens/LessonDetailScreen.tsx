@@ -14,7 +14,7 @@ export const LessonDetailScreen: React.FC = () => {
   const navigation = useNavigation();
   const { lessonId } = route.params as { lessonId: string };
   const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [activeTab, setActiveTab] = useState<'read' | 'play'>('read');
+  const [activeTab, setActiveTab] = useState<'read' | 'play'>('play');
   const iconColorPrimary = useIconColor('primary');
   const iconColorSecondary = useIconColor('secondary');
   const iconColorTertiary = useIconColor('tertiary');
@@ -88,8 +88,9 @@ export const LessonDetailScreen: React.FC = () => {
       >
         <TouchableOpacity
           onPress={() => setActiveTab('read')}
+          style={{ flex: 1 }}
         >
-          <Box flex={1} alignItems="center" paddingVertical="xs">
+          <Box alignItems="center" paddingVertical="xs">
             <Box flexDirection="row" alignItems="center">
               <Box marginRight="xs">
                 <Ionicons
@@ -109,8 +110,9 @@ export const LessonDetailScreen: React.FC = () => {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setActiveTab('play')}
+          style={{ flex: 1 }}
         >
-          <Box flex={1} alignItems="center" paddingVertical="xs">
+          <Box alignItems="center" paddingVertical="xs">
             <Box flexDirection="row" alignItems="center">
               <Box marginRight="xs">
                 <Ionicons
