@@ -4,10 +4,11 @@ import { Screen, Stack, Text, Card, StatCard } from '@ui';
 import { Box } from '@ui/primitives';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@designSystem/ThemeProvider';
-import { useLessonsStore, usePlansStore, usePlaybackStore, useUserStateStore, useAuthStore } from '@store';
+import { useLessonsStore, usePlansStore, usePlaybackStore, useUserStateStore, useAuthStore, DEMO_PLAN_ID } from '@store';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PlansStackParamList } from '@navigation/types';
+import { useOnboarding } from '@context/OnboardingContext';
 
 type PlansNavigationProp = NativeStackNavigationProp<PlansStackParamList, 'Plans'>;
 
@@ -35,6 +36,8 @@ export const PlansScreen: React.FC = () => {
 
   // Auth store
   const { user } = useAuthStore();
+  const activePlanId = useUserStateStore((state) => state.activePlanId);
+  const isDemoPlan = activePlanId === DEMO_PLAN_ID;
 
   // Plans store - real data
   const { 
@@ -57,9 +60,12 @@ export const PlansScreen: React.FC = () => {
   const resetPlayback = usePlaybackStore((state) => state.reset);
   const resetProgress = useUserStateStore((state) => state.resetProgress);
 
+  // Onboarding reset
+  const { resetOnboarding } = useOnboarding();
+
   // Load data on mount
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && !isDemoPlan) {
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - 3); // Load last 3 months
       const endDate = new Date();
@@ -68,7 +74,7 @@ export const PlansScreen: React.FC = () => {
       loadStreakData(user.id);
       loadLearningHistory(user.id, formatDateString(startDate), formatDateString(endDate));
     }
-  }, [user?.id, loadKPIs, loadStreakData, loadLearningHistory]);
+  }, [user?.id, loadKPIs, loadStreakData, loadLearningHistory, isDemoPlan]);
 
   // Get completed days from learning history
   const getCompletedDaysFromHistory = useCallback((month: number, year: number): Set<number> => {
@@ -170,8 +176,26 @@ export const PlansScreen: React.FC = () => {
     );
   }, [resetLessons, resetPlans, resetPlayback, resetProgress]);
 
+  const handleCompleteReset = useCallback(() => {
+    Alert.alert(
+      'Complete Reset',
+      'This will reset everything and take you back to the beginning of onboarding. All your progress, preferences, and settings will be erased. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Everything',
+          style: 'destructive',
+          onPress: async () => {
+            // resetOnboarding now handles clearing all stores internally
+            await resetOnboarding();
+          },
+        },
+      ]
+    );
+  }, [resetOnboarding]);
+
   const onRefresh = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || isDemoPlan) return;
     setRefreshing(true);
     try {
       await refreshAll(user.id);
@@ -451,6 +475,25 @@ export const PlansScreen: React.FC = () => {
                 <Ionicons name="refresh-outline" size={18} color={theme.colors.error} />
                 <Text variant="body" style={{ color: theme.colors.error, fontWeight: '500' }}>
                   Reset Progress
+                </Text>
+              </Box>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleCompleteReset}
+              style={{
+                marginTop: 12,
+                paddingVertical: 14,
+                paddingHorizontal: 24,
+                borderRadius: 12,
+                backgroundColor: theme.colors.error,
+                alignItems: 'center',
+              }}
+            >
+              <Box flexDirection="row" alignItems="center" gap="sm">
+                <Ionicons name="nuclear-outline" size={18} color="white" />
+                <Text variant="body" style={{ color: 'white', fontWeight: '600' }}>
+                  Complete Reset
                 </Text>
               </Box>
             </TouchableOpacity>

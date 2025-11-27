@@ -139,11 +139,18 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
           )}
         </View>
         
-        {/* Title and subtitle */}
-        <View style={[styles.titleContainer]}>
-          <Text variant="heading1" marginBottom={subtitle ? 'sm' : 'xl'} fontSize={32} lineHeight={40}>
-            {title}
-          </Text>
+      {/* Title and subtitle */}
+      <View style={[styles.titleContainer]}>
+        <Text 
+          variant="heading1" 
+          marginBottom={subtitle ? 'sm' : 'xl'} 
+          fontSize={40} 
+          lineHeight={48}
+          fontWeight="800"
+          letterSpacing={-1}
+        >
+          {title}
+        </Text>
           {subtitle && (
             <Text variant="body" color="textSecondary" marginBottom="xl" fontSize={16}>
               {subtitle}
@@ -295,7 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   titleContainer: {
-    marginTop: 16,
+    marginTop: 32,
   },
   scrollViewContainer: {
     flex: 1,

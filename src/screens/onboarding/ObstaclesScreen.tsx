@@ -4,8 +4,9 @@ import { OnboardingLayout } from '@ui/layout/OnboardingLayout';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { OnboardingStackParamList } from '@navigation/types';
-import { OptionPill } from '@components/onboarding';
+import { OnboardingChoiceCard } from '@ui/onboarding/OnboardingChoiceCard';
 import { useOnboarding } from '@context/OnboardingContext';
+import { Ionicons } from '@expo/vector-icons';
 
 type ObstaclesScreenNavigationProp = NativeStackNavigationProp<
   OnboardingStackParamList,
@@ -13,51 +14,80 @@ type ObstaclesScreenNavigationProp = NativeStackNavigationProp<
 >;
 
 const OBSTACLE_OPTIONS = [
-  'Lack of time',
-  'Hard to stay focused',
-  "Don't know where to start",
-  'Forget what I learned',
-  'Busy mornings',
-  'Inconsistent habits',
+  {
+    label: 'Lack of consistency',
+    sublabel: "I start strong but don't stick with it",
+    icon: 'repeat-outline',
+    key: 'consistency',
+  },
+  {
+    label: 'Too busy',
+    sublabel: 'I never seem to find the time',
+    icon: 'calendar-outline',
+    key: 'busy',
+  },
+  {
+    label: 'Too tired',
+    sublabel: 'No energy left after work',
+    icon: 'battery-dead-outline',
+    key: 'tired',
+  },
+  {
+    label: 'No structure',
+    sublabel: "I don't know where to start",
+    icon: 'grid-outline',
+    key: 'structure',
+  },
+  {
+    label: 'Too many options',
+    sublabel: 'I get overwhelmed and give up',
+    icon: 'apps-outline',
+    key: 'options',
+  },
 ];
 
 export const ObstaclesScreen: React.FC = () => {
   const navigation = useNavigation<ObstaclesScreenNavigationProp>();
   const { state, updateState } = useOnboarding();
-  const [selectedObstacles, setSelectedObstacles] = useState<string[]>(
-    state.obstacles || []
+  const [selectedObstacle, setSelectedObstacle] = useState<string>(
+    state.obstacles?.[0] || ''
   );
 
   const handleContinue = () => {
-    updateState({ obstacles: selectedObstacles });
+    updateState({ obstacles: [selectedObstacle] });
     navigation.navigate('Encouragement');
   };
 
-  const handleToggleObstacle = (obstacle: string) => {
-    setSelectedObstacles((prev) =>
-      prev.includes(obstacle)
-        ? prev.filter((o) => o !== obstacle)
-        : [...prev, obstacle]
-    );
+  const handleSelectObstacle = (obstacle: string) => {
+    setSelectedObstacle(obstacle);
   };
 
   return (
     <OnboardingLayout
-      currentStep={6}
+      currentStep={5}
       totalSteps={17}
-      title="What usually gets in the way?"
-      subtitle="Knowing this helps us build a plan you can stick to."
+      title="What usually stops you from learning?"
+      subtitle="Be honest — we're here to help."
       onContinue={handleContinue}
+      ctaDisabled={!selectedObstacle}
       showBackButton={true}
     >
       <View style={styles.content}>
         {OBSTACLE_OPTIONS.map((obstacle, index) => (
-          <View key={obstacle} style={styles.optionContainer}>
-            <OptionPill
-              label={obstacle}
-              selected={selectedObstacles.includes(obstacle)}
-              onPress={() => handleToggleObstacle(obstacle)}
+          <View key={obstacle.key} style={styles.optionContainer}>
+            <OnboardingChoiceCard
+              label={obstacle.label}
+              description={obstacle.sublabel}
+              selected={selectedObstacle === obstacle.key}
+              onPress={() => handleSelectObstacle(obstacle.key)}
               index={index}
+              icon={
+                <Ionicons 
+                  name={obstacle.icon as any} 
+                  size={20} 
+                  color={selectedObstacle === obstacle.key ? '#FFFFFF' : '#000000'}
+                />
+              }
             />
           </View>
         ))}
@@ -76,4 +106,3 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 });
-

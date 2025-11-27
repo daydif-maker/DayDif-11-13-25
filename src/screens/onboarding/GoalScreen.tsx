@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { OnboardingLayout } from '@ui/layout/OnboardingLayout';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -13,13 +13,16 @@ type GoalScreenNavigationProp = NativeStackNavigationProp<
 >;
 
 const GOAL_OPTIONS = [
-  'Business & Finance',
+  'Business & Entrepreneurship',
   'Personal Development',
-  'Technology & AI',
+  'Science & Technology',
   'History & Culture',
-  'Psychology & Behavior',
-  'Language Basics',
-  'Custom Topic',
+  'Health & Wellness',
+  'Psychology & Relationships',
+  'Finance & Investing',
+  'Creativity & Arts',
+  'Leadership & Management',
+  'Philosophy & Big Ideas',
 ];
 
 export const GoalScreen: React.FC = () => {
@@ -38,16 +41,20 @@ export const GoalScreen: React.FC = () => {
 
   return (
     <OnboardingLayout
-      currentStep={1}
+      currentStep={3}
       totalSteps={17}
-      title="What would you like to learn?"
-      subtitle="Choose one to get started. You can change it anytime."
+      title="What do you want to learn first?"
+      subtitle="You can always explore more topics later."
       onContinue={handleContinue}
       ctaDisabled={!selectedGoal}
       showBackButton={true}
       showLanguageSelector={true}
     >
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {GOAL_OPTIONS.map((goal, index) => (
           <View key={goal} style={styles.optionContainer}>
             <OptionPill
@@ -58,19 +65,21 @@ export const GoalScreen: React.FC = () => {
             />
           </View>
         ))}
-      </View>
+      </ScrollView>
     </OnboardingLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  content: {
     gap: 12,
     paddingTop: 8,
+    paddingBottom: 16,
   },
   optionContainer: {
     width: '100%',
   },
 });
-

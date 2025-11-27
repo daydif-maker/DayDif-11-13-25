@@ -1,13 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLessonsStore } from '@store/slices/lessonsSlice';
+import { usePlansStore } from '@store/slices/plansSlice';
+import { usePlaybackStore } from '@store/slices/playbackSlice';
+import { useUserStateStore } from '@store/slices/userStateSlice';
 
 export type OnboardingState = {
-  gender: string;
   goal: string;
   motivation: string;
   commuteTimeOfDay: 'Morning' | 'Afternoon' | 'Evening';
   commuteDurationMinutes: number;
-  learningStyle: string;
+  commuteTypes: string[];
   obstacles: string[];
   pace: 'Light' | 'Standard' | 'Fast';
   isCompleted: boolean;
@@ -16,12 +19,11 @@ export type OnboardingState = {
 const STORAGE_KEY = 'daydif-onboarding-state';
 
 const defaultState: OnboardingState = {
-  gender: '',
   goal: '',
   motivation: '',
   commuteTimeOfDay: 'Morning',
   commuteDurationMinutes: 30,
-  learningStyle: '',
+  commuteTypes: [],
   obstacles: [],
   pace: 'Standard',
   isCompleted: false,
@@ -66,10 +68,8 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
           // This handles cases where stale data might mark onboarding as complete
           if (loadedState.isCompleted) {
             const hasRequiredFields = 
-              loadedState.gender && 
               loadedState.goal && 
-              loadedState.motivation && 
-              loadedState.learningStyle;
+              loadedState.motivation;
             
             if (!hasRequiredFields) {
               console.log('Onboarding marked as completed but data incomplete, resetting...');
@@ -77,7 +77,24 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
             }
           }
           
+          // If onboarding is not completed, clear all stores to ensure clean state
+          // This handles fresh installs and incomplete onboarding flows
+          if (!loadedState.isCompleted) {
+            console.log('Onboarding not completed, clearing all stores for clean state...');
+            useLessonsStore.getState().reset();
+            usePlansStore.getState().reset();
+            usePlaybackStore.getState().reset();
+            await useUserStateStore.getState().reset();
+          }
+          
           setState(loadedState);
+        } else {
+          // No stored state means fresh install - ensure stores are clean
+          console.log('No onboarding state found, clearing all stores for fresh start...');
+          useLessonsStore.getState().reset();
+          usePlansStore.getState().reset();
+          usePlaybackStore.getState().reset();
+          await useUserStateStore.getState().reset();
         }
       } catch (error) {
         console.error('Failed to load onboarding state:', error);
@@ -122,6 +139,12 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     setState(defaultState);
     try {
       await AsyncStorage.removeItem(STORAGE_KEY);
+      
+      // Reset all related stores to ensure a clean slate for new users
+      useLessonsStore.getState().reset();
+      usePlansStore.getState().reset();
+      usePlaybackStore.getState().reset();
+      await useUserStateStore.getState().reset();
     } catch (error) {
       console.error('Failed to reset onboarding state:', error);
     }

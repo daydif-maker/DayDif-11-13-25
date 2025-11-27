@@ -6,6 +6,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { OnboardingStackParamList } from '@navigation/types';
 import { Text } from '@ui/Text';
 import { useTheme } from '@designSystem/ThemeProvider';
+import { Ionicons } from '@expo/vector-icons';
 
 type SaveProgressScreenNavigationProp = NativeStackNavigationProp<
   OnboardingStackParamList,
@@ -32,10 +33,10 @@ export const SaveProgressScreen: React.FC = () => {
 
   return (
     <OnboardingLayout
-      currentStep={14}
+      currentStep={13}
       totalSteps={17}
       title="Save your progress"
-      subtitle="Create an account to access your lessons across devices."
+      subtitle="Create an account to keep your personalized plan and track your learning."
       onContinue={handleAppleSignIn}
       ctaLabel="Sign in with Apple"
       showBackButton={true}
@@ -44,20 +45,22 @@ export const SaveProgressScreen: React.FC = () => {
         <TouchableOpacity
           onPress={handleGoogleSignIn}
           style={[
-            styles.secondaryButton,
+            styles.googleButton,
             {
               backgroundColor: theme.colors.surface,
               borderColor: theme.colors.border,
             },
           ]}
         >
+          <Ionicons name="logo-google" size={20} color={theme.colors.textPrimary} />
           <Text variant="body" color="textPrimary" fontWeight="600">
             Sign in with Google
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-          <Text variant="bodySmall" color="textSecondary">
-            Would you like to sign in later? Skip
+          <Text variant="body" color="textSecondary">
+            Skip for now
           </Text>
         </TouchableOpacity>
       </View>
@@ -71,7 +74,8 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingTop: 8,
   },
-  secondaryButton: {
+  googleButton: {
+    flexDirection: 'row',
     width: '100%',
     paddingVertical: 16,
     borderRadius: 24,
@@ -79,10 +83,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     minHeight: 48,
+    gap: 12,
   },
   skipButton: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
 });
-

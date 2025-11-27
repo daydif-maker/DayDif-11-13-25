@@ -4,6 +4,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { Lesson, LearningHistoryEntry } from '../types';
 
+// Placeholder plan used when a user skips onboarding to enter the app
+export const DEMO_PLAN_ID = 'demo-plan';
+
 interface OnboardingData {
   goal?: string;
   minutesPerDay?: number;
@@ -258,4 +261,3 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'test') {
     }
   };
 }
-

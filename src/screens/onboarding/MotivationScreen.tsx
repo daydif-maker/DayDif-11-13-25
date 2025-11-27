@@ -15,29 +15,29 @@ type MotivationScreenNavigationProp = NativeStackNavigationProp<
 
 const MOTIVATION_OPTIONS = [
   { 
-    label: 'Personal growth',
-    description: 'Develop yourself',
-    icon: 'person-outline',
-  },
-  { 
     label: 'Career advancement',
-    description: 'Level up professionally',
+    sublabel: 'Get ahead at work',
     icon: 'briefcase-outline',
   },
   { 
-    label: 'Academic improvement',
-    description: 'Excel in your studies',
-    icon: 'school-outline',
+    label: 'Personal growth',
+    sublabel: 'Become a better version of myself',
+    icon: 'person-outline',
   },
   { 
-    label: 'Staying intellectually sharp',
-    description: 'Keep your mind active',
+    label: 'Stay curious',
+    sublabel: 'Learn something new every day',
     icon: 'bulb-outline',
   },
   { 
-    label: 'Exploring a new interest',
-    description: 'Discover something new',
-    icon: 'compass-outline',
+    label: 'Build a specific skill',
+    sublabel: 'Master a particular topic',
+    icon: 'hammer-outline',
+  },
+  { 
+    label: 'Use my time better',
+    sublabel: 'Stop wasting my commute',
+    icon: 'time-outline',
   },
 ];
 
@@ -48,7 +48,7 @@ export const MotivationScreen: React.FC = () => {
 
   const handleContinue = () => {
     updateState({ motivation: selectedMotivation });
-    navigation.navigate('CommuteTimeOfDay');
+    navigation.navigate('Obstacles');
   };
 
   const handleSelectMotivation = (motivation: string) => {
@@ -57,10 +57,10 @@ export const MotivationScreen: React.FC = () => {
 
   return (
     <OnboardingLayout
-      currentStep={2}
+      currentStep={4}
       totalSteps={17}
-      title="Why does this goal matter to you?"
-      subtitle="Understanding your motivation helps us build a lasting habit."
+      title="What's driving you to learn?"
+      subtitle="This helps us personalize your experience."
       onContinue={handleContinue}
       ctaDisabled={!selectedMotivation}
       showBackButton={true}
@@ -71,7 +71,7 @@ export const MotivationScreen: React.FC = () => {
           <View key={motivation.label} style={styles.optionContainer}>
             <OnboardingChoiceCard
               label={motivation.label}
-              description={motivation.description}
+              description={motivation.sublabel}
               selected={selectedMotivation === motivation.label}
               onPress={() => handleSelectMotivation(motivation.label)}
               index={index}
@@ -100,4 +100,3 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 });
-

@@ -140,6 +140,7 @@ This is the FINAL segment. Wrap up naturally, thank listeners, and if there are 
 Guidelines:
 - Create natural, conversational dialogue between {{ speakers | map(attribute='name') | join(' and ') }}
 - Minimum {{ min_turns }} turns of dialogue for this segment
+- Aim for ~{{ target_seconds }} seconds (about {{ target_words }} words); stay within ±15%
 - Match each speaker's personality and expertise
 - Use clear explanations, analogies, and examples
 - Avoid jargon unless explained
@@ -153,7 +154,7 @@ Return as JSON:
     {"speaker": "Speaker Name", "dialogue": "What they say..."},
     {"speaker": "Other Speaker", "dialogue": "Their response..."}
   ],
-  "duration_estimate_seconds": 120
+  "duration_estimate_seconds": {{ target_seconds }}
 }
 
 Return ONLY the JSON object, no additional text or code blocks."""
@@ -218,6 +219,21 @@ def calculate_segment_turns(size: str, base_turns: int = 4) -> int:
     """Calculate minimum dialogue turns based on segment size"""
     multipliers = {"short": 1, "medium": 2, "long": 3}
     return base_turns * multipliers.get(size, 2)
+
+
+def _calculate_target_duration_seconds(outline: dict, segment_index: int) -> int:
+    """Estimate per-segment duration so total matches requested lesson length."""
+    requested_minutes = outline.get("duration_minutes", 10) or 10
+    segments = outline.get("segments", []) or []
+    segment = segments[segment_index] if segment_index < len(segments) else {}
+
+    # Base duration is evenly split across segments with a 45s floor
+    base_seconds = max(45, int((requested_minutes * 60) / max(1, len(segments))))
+
+    # Weight by segment size to keep intros/summaries a bit shorter
+    size = segment.get("size", "medium")
+    multipliers = {"short": 0.8, "medium": 1.0, "long": 1.2}
+    return int(base_seconds * multipliers.get(size, 1.0))
 
 
 # ============================================================================
@@ -310,6 +326,7 @@ def generate_segment_transcript(
     outline: dict,
     segment_index: int,
     previous_transcript: str = "",
+    target_duration_seconds: int | None = None,
 ) -> dict:
     """
     Stage 2: Generate transcript for a single segment
@@ -326,6 +343,10 @@ def generate_segment_transcript(
 
     # Calculate turns based on segment size
     min_turns = calculate_segment_turns(segment.get("size", "medium"))
+    target_seconds = target_duration_seconds or _calculate_target_duration_seconds(
+        outline, segment_index
+    )
+    target_words = int(target_seconds / 60 * 150)  # ~150 words per minute
 
     prompt = render_template(
         TRANSCRIPT_PROMPT,
@@ -340,6 +361,8 @@ def generate_segment_transcript(
         segment=segment,
         is_final=is_final,
         min_turns=min_turns,
+        target_seconds=target_seconds,
+        target_words=target_words,
     )
 
     response = client.chat.completions.create(
@@ -413,10 +436,12 @@ def generate_lesson_content(
     for i, segment in enumerate(outline.get("segments", [])):
         print(f"   Processing segment {i + 1}/{len(outline['segments'])}: {segment.get('name', 'Unknown')}")
 
+        target_seconds = _calculate_target_duration_seconds(outline, i)
         segment_result = generate_segment_transcript.remote(
             outline=outline,
             segment_index=i,
             previous_transcript=accumulated_transcript,
+            target_duration_seconds=target_seconds,
         )
 
         # Accumulate transcript for context
@@ -432,7 +457,7 @@ def generate_lesson_content(
             "title": segment.get("name", f"Part {i + 1}"),
             "text": segment_text,
             "transcript": segment_transcript,
-            "duration_estimate": segment_result.get("duration_estimate_seconds", 120),
+            "duration_estimate": segment_result.get("duration_estimate_seconds", target_seconds),
             "key_points": segment.get("key_points", []),
         })
 

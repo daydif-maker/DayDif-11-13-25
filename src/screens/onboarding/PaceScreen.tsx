@@ -4,79 +4,95 @@ import { OnboardingLayout } from '@ui/layout/OnboardingLayout';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { OnboardingStackParamList } from '@navigation/types';
-import { Slider } from '@ui/Slider';
+import { OnboardingChoiceCard } from '@ui/onboarding/OnboardingChoiceCard';
 import { Text } from '@ui/Text';
 import { useOnboarding } from '@context/OnboardingContext';
-import { useTheme } from '@designSystem/ThemeProvider';
+import { Ionicons } from '@expo/vector-icons';
 
 type PaceScreenNavigationProp = NativeStackNavigationProp<
   OnboardingStackParamList,
   'Pace'
 >;
 
-const PACE_OPTIONS: Array<'Light' | 'Standard' | 'Fast'> = [
-  'Light',
-  'Standard',
-  'Fast',
+const PACE_OPTIONS = [
+  {
+    label: 'Relaxed',
+    sublabel: '3–5 lessons per week',
+    value: 'Light' as const,
+    icon: 'leaf-outline',
+    topicsPerMonth: 1,
+  },
+  {
+    label: 'Steady',
+    sublabel: '7 lessons per week',
+    value: 'Standard' as const,
+    icon: 'walk-outline',
+    recommended: true,
+    topicsPerMonth: 2,
+  },
+  {
+    label: 'Ambitious',
+    sublabel: '10+ lessons per week',
+    value: 'Fast' as const,
+    icon: 'rocket-outline',
+    topicsPerMonth: 4,
+  },
 ];
 
 export const PaceScreen: React.FC = () => {
   const navigation = useNavigation<PaceScreenNavigationProp>();
   const { state, updateState } = useOnboarding();
-  const { theme } = useTheme();
-  const [paceValue, setPaceValue] = useState(() => {
-    const index = PACE_OPTIONS.indexOf(state.pace);
-    return index >= 0 ? index : 1; // Default to Standard
+  const [selectedPace, setSelectedPace] = useState<string>(() => {
+    const match = PACE_OPTIONS.find(opt => opt.value === state.pace);
+    return match ? match.label : 'Steady';
   });
-  const selectedPace = PACE_OPTIONS[paceValue];
 
   const handleContinue = () => {
-    updateState({ pace: selectedPace });
-    navigation.navigate('SocialProof');
+    const option = PACE_OPTIONS.find(opt => opt.label === selectedPace);
+    if (option) {
+      updateState({ pace: option.value });
+    }
+    navigation.navigate('Projection');
   };
 
-  const handleValueChange = (value: number) => {
-    const rounded = Math.round(value);
-    setPaceValue(Math.max(0, Math.min(2, rounded)));
-  };
+  const selectedOption = PACE_OPTIONS.find(opt => opt.label === selectedPace);
 
   return (
     <OnboardingLayout
-      currentStep={9}
+      currentStep={7}
       totalSteps={17}
-      title="How quickly do you want to move through your lessons?"
-      subtitle="We'll adjust your daily workload."
+      title="How fast do you want to progress?"
+      subtitle="You can adjust this anytime."
       onContinue={handleContinue}
       showBackButton={true}
     >
       <View style={styles.content}>
-        <View style={styles.sliderContainer}>
-          <Slider
-            value={paceValue}
-            minimumValue={0}
-            maximumValue={2}
-            step={1}
-            onValueChange={handleValueChange}
-          />
-        </View>
-        <View style={styles.labelsContainer}>
-          {PACE_OPTIONS.map((pace, index) => (
-            <View key={pace} style={styles.labelWrapper}>
-              <Text
-                variant="bodySmall"
-                color={index === paceValue ? 'textPrimary' : 'textSecondary'}
-                fontWeight={index === paceValue ? '600' : '400'}
-              >
-                {pace === 'Standard' ? `${pace} pace (recommended)` : `${pace} pace`}
-              </Text>
-            </View>
-          ))}
-        </View>
-        <View style={styles.selectedContainer}>
-          <Text variant="heading3" style={styles.selectedText}>
-            {selectedPace} pace
-          </Text>
-        </View>
+        {PACE_OPTIONS.map((option, index) => (
+          <View key={option.label} style={styles.optionContainer}>
+            <OnboardingChoiceCard
+              label={option.recommended ? `${option.label} (Recommended)` : option.label}
+              description={option.sublabel}
+              selected={selectedPace === option.label}
+              onPress={() => setSelectedPace(option.label)}
+              index={index}
+              icon={
+                <Ionicons 
+                  name={option.icon as any} 
+                  size={20} 
+                  color={selectedPace === option.label ? '#FFFFFF' : '#000000'}
+                />
+              }
+            />
+          </View>
+        ))}
+        
+        {selectedOption && (
+          <View style={styles.projectionContainer}>
+            <Text variant="body" color="textSecondary" style={styles.projectionText}>
+              At this pace, you'll complete about {selectedOption.topicsPerMonth} topics per month.
+            </Text>
+          </View>
+        )}
       </View>
     </OnboardingLayout>
   );
@@ -85,30 +101,17 @@ export const PaceScreen: React.FC = () => {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    paddingTop: 48,
-    alignItems: 'center',
+    gap: 12,
+    paddingTop: 8,
   },
-  sliderContainer: {
+  optionContainer: {
     width: '100%',
-    paddingHorizontal: 8,
-    marginBottom: 24,
   },
-  labelsContainer: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    marginBottom: 32,
-  },
-  labelWrapper: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  selectedContainer: {
+  projectionContainer: {
     marginTop: 16,
+    paddingHorizontal: 8,
   },
-  selectedText: {
+  projectionText: {
     textAlign: 'center',
   },
 });
-

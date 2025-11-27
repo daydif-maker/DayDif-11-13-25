@@ -1,9 +1,13 @@
 import { useEffect, useMemo } from 'react';
-import { usePlansStore } from '@store';
-import { useUserStore } from '@store';
-import { useAuthStore } from '@store';
+import { 
+  usePlansStore, 
+  useUserStore, 
+  useAuthStore, 
+  useLessonsStore, 
+  useUserStateStore, 
+  DEMO_PLAN_ID 
+} from '@store';
 import { lessonService } from '@services/api/lessonService';
-import { useLessonsStore } from '@store';
 
 interface WeeklyProgressResult {
   lessons: number;
@@ -35,6 +39,8 @@ export const useTodayScreen = (): TodayScreenData => {
     refreshAll,
   } = usePlansStore();
   const { dailyLesson, nextUpQueue, setDailyLesson, addToQueue } = useLessonsStore();
+  const activePlanId = useUserStateStore((state) => state.activePlanId);
+  const isDemoPlan = activePlanId === DEMO_PLAN_ID;
 
   const userId = user?.id;
 
@@ -48,7 +54,7 @@ export const useTodayScreen = (): TodayScreenData => {
 
   // Load data when userId is available
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || isDemoPlan) return;
 
     const loadData = async () => {
       try {
@@ -66,7 +72,7 @@ export const useTodayScreen = (): TodayScreenData => {
     };
 
     loadData();
-  }, [userId, loadTodayLesson, loadWeeklyProgress, addToQueue]);
+  }, [userId, loadTodayLesson, loadWeeklyProgress, addToQueue, isDemoPlan]);
 
   // Sync planSlice todayLesson with lessonsSlice dailyLesson
   useEffect(() => {
@@ -76,7 +82,7 @@ export const useTodayScreen = (): TodayScreenData => {
   }, [todayLesson, dailyLesson, setDailyLesson]);
 
   const refresh = async () => {
-    if (!userId) return;
+    if (!userId || isDemoPlan) return;
     await refreshAll(userId);
     
     // Also refresh lesson queue

@@ -7,6 +7,7 @@ import { OnboardingStackParamList } from '@navigation/types';
 import { Card } from '@ui/Card';
 import { Text } from '@ui/Text';
 import { useTheme } from '@designSystem/ThemeProvider';
+import { Ionicons } from '@expo/vector-icons';
 
 type SocialProofScreenNavigationProp = NativeStackNavigationProp<
   OnboardingStackParamList,
@@ -25,13 +26,35 @@ export const SocialProofScreen: React.FC = () => {
     <OnboardingLayout
       currentStep={10}
       totalSteps={17}
-      title="DayDif works for people like you"
-      subtitle="Join thousands turning their commute into a powerful learning routine."
+      title="DayDif was made for people like you"
       onContinue={handleContinue}
       showBackButton={true}
     >
       <View style={styles.content}>
-        <Card variant="outlined" padding="lg" style={styles.card}>
+        {/* Rating Badge */}
+        <Card variant="outlined" padding="lg" style={styles.ratingCard}>
+          <View style={styles.ratingContainer}>
+            <Text variant="heading2" color="textPrimary" style={styles.ratingNumber}>
+              4.8
+            </Text>
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Ionicons
+                  key={star}
+                  name="star"
+                  size={20}
+                  color="#FFB800"
+                />
+              ))}
+            </View>
+            <Text variant="body" color="textSecondary">
+              50,000+ Ratings
+            </Text>
+          </View>
+        </Card>
+
+        {/* Community Section */}
+        <Card variant="outlined" padding="lg" style={styles.communityCard}>
           <View style={styles.avatarsContainer}>
             {[1, 2, 3].map((i) => (
               <View
@@ -39,21 +62,39 @@ export const SocialProofScreen: React.FC = () => {
                 style={[
                   styles.avatar,
                   {
-                    backgroundColor: theme.colors.primary,
-                    marginLeft: i > 1 ? -12 : 0,
+                    backgroundColor: i === 1 ? '#E8D5B7' : i === 2 ? '#C4A77D' : '#8B7355',
+                    marginLeft: i > 1 ? -16 : 0,
+                    zIndex: 4 - i,
                   },
                 ]}
               />
             ))}
           </View>
-          <View style={styles.testimonials}>
-            <Text variant="body" color="textPrimary" marginBottom="sm">
-              "I finally use my commute for something meaningful."
+          <Text variant="body" color="textSecondary" style={styles.communityText}>
+            100,000+ learners
+          </Text>
+        </Card>
+
+        {/* Testimonial */}
+        <Card variant="outlined" padding="lg" style={styles.testimonialCard}>
+          <View style={styles.testimonialHeader}>
+            <Text variant="body" color="textPrimary" fontWeight="600">
+              Sarah M.
             </Text>
-            <Text variant="body" color="textPrimary">
-              "The weekly recaps helped me actually remember what I learned."
-            </Text>
+            <View style={styles.starsRowSmall}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Ionicons
+                  key={star}
+                  name="star"
+                  size={14}
+                  color="#FFB800"
+                />
+              ))}
+            </View>
           </View>
+          <Text variant="body" color="textPrimary" style={styles.testimonialQuote}>
+            "I've learned more in two months of commuting than I did in a year of trying to read before bed. This app actually fits my life."
+          </Text>
         </Card>
       </View>
     </OnboardingLayout>
@@ -63,26 +104,58 @@ export const SocialProofScreen: React.FC = () => {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
+    gap: 16,
     paddingTop: 8,
   },
-  card: {
+  ratingCard: {
+    width: '100%',
+  },
+  ratingContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  ratingNumber: {
+    fontSize: 48,
+    fontWeight: '700',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  communityCard: {
     width: '100%',
   },
   avatarsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-    paddingLeft: 4,
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#FFFFFF',
   },
-  testimonials: {
-    gap: 16,
+  communityText: {
+    textAlign: 'center',
+  },
+  testimonialCard: {
+    width: '100%',
+  },
+  testimonialHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  starsRowSmall: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  testimonialQuote: {
+    fontStyle: 'italic',
+    lineHeight: 24,
   },
 });
-
