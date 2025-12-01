@@ -60,7 +60,7 @@ export interface Plan {
   // New fields for basic plan creation
   topicPrompt?: string; // The exact prompt fed into the LLM
   daysPerWeek?: number; // 2-5 days per week
-  lessonDuration?: '8-10' | '10-15' | '15-20'; // Duration in minutes
+  lessonDuration?: '5' | '8-10' | '10-15' | '15-20'; // Duration in minutes
   lessonCount?: number; // Derived: daysPerWeek * 2
 }
 
@@ -94,5 +94,4 @@ export interface AudioState {
 }
 
 export type ModalType = 'settings' | 'goal' | 'avatar' | null;
-
 

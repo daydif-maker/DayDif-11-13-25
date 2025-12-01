@@ -20,12 +20,136 @@ const AUTH_BYPASS_ENABLED = Deno.env.get("AUTH_BYPASS_ENABLED") === "true";
 // Note: Cannot use nil UUID (all zeros) as Supabase Auth rejects it
 const ANONYMOUS_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
+// ============================================================================
+// Request/Validation Types (aligned with frontend src/types/lessonPlan.ts)
+// ============================================================================
+
 interface CreatePlanRequest {
   topic: string;
   numberOfLessons: number;
   durationMinutes: number;
   userLevel: string;
   userId: string;
+  daysPerWeek?: number;
+  lessonDuration?: string;
+}
+
+// Duration mapping: UI option string → numeric minutes (upper bound)
+// MUST match LESSON_DURATION_MAP in src/types/lessonPlan.ts
+const LESSON_DURATION_MAP: Record<string, number> = {
+  '5': 5,
+  '8-10': 10,   // Upper bound of 8-10 range
+  '10-15': 15,  // Upper bound of 10-15 range
+  '15-20': 20,  // Upper bound of 15-20 range
+};
+
+// Valid ranges for validation
+const LESSON_COUNT_RANGE = { min: 1, max: 20 };
+const DURATION_MINUTES_RANGE = { min: 5, max: 30 };
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+function toNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = parseFloat(value);
+    if (!Number.isNaN(parsed) && Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+interface ResolutionResult<T> {
+  value: T;
+  source: 'primary' | 'fallback' | 'default';
+  warning?: string;
+}
+
+/**
+ * Resolve lesson count from request parameters
+ * Priority: numberOfLessons (if valid) > computed from daysPerWeek > error
+ */
+function resolveLessonCount(
+  numberOfLessons?: unknown,
+  daysPerWeek?: unknown
+): ResolutionResult<number> {
+  // Try numberOfLessons first (should be the primary source from frontend)
+  const numericLessons = toNumber(numberOfLessons);
+  if (numericLessons !== null && numericLessons > 0) {
+    const clamped = Math.min(Math.floor(numericLessons), LESSON_COUNT_RANGE.max);
+    if (clamped !== numericLessons) {
+      return {
+        value: clamped,
+        source: 'primary',
+        warning: `numberOfLessons clamped from ${numericLessons} to ${clamped}`,
+      };
+    }
+    return { value: clamped, source: 'primary' };
+  }
+
+  // Fallback: compute from daysPerWeek
+  const numericDays = toNumber(daysPerWeek);
+  if (numericDays !== null && numericDays > 0) {
+    const lessonsFromDays = numericDays === 1 ? 1 : numericDays * 2;
+    const clamped = Math.min(lessonsFromDays, LESSON_COUNT_RANGE.max);
+    return {
+      value: clamped,
+      source: 'fallback',
+      warning: `numberOfLessons was invalid (${numberOfLessons}), computed ${clamped} from daysPerWeek=${numericDays}`,
+    };
+  }
+
+  // Both values invalid - this is an error condition
+  return {
+    value: LESSON_COUNT_RANGE.min,
+    source: 'default',
+    warning: `Both numberOfLessons (${numberOfLessons}) and daysPerWeek (${daysPerWeek}) were invalid. Using minimum of ${LESSON_COUNT_RANGE.min}.`,
+  };
+}
+
+/**
+ * Resolve duration minutes from request parameters
+ * Priority: durationMinutes (if valid) > mapped from lessonDuration > error
+ */
+function resolveDurationMinutes(
+  durationMinutes?: unknown,
+  lessonDuration?: unknown
+): ResolutionResult<number> {
+  // Try durationMinutes first (should be the primary source from frontend)
+  const numericDuration = toNumber(durationMinutes);
+  if (numericDuration !== null && numericDuration > 0) {
+    const clamped = Math.min(
+      Math.max(Math.round(numericDuration), DURATION_MINUTES_RANGE.min),
+      DURATION_MINUTES_RANGE.max
+    );
+    if (clamped !== numericDuration) {
+      return {
+        value: clamped,
+        source: 'primary',
+        warning: `durationMinutes clamped from ${numericDuration} to ${clamped}`,
+      };
+    }
+    return { value: clamped, source: 'primary' };
+  }
+
+  // Fallback: look up from lessonDuration string
+  const durationKey = typeof lessonDuration === "string" ? lessonDuration : undefined;
+  if (durationKey && LESSON_DURATION_MAP[durationKey]) {
+    return {
+      value: LESSON_DURATION_MAP[durationKey],
+      source: 'fallback',
+      warning: `durationMinutes was invalid (${durationMinutes}), mapped ${LESSON_DURATION_MAP[durationKey]} from lessonDuration='${durationKey}'`,
+    };
+  }
+
+  // Both values invalid - this is an error condition
+  const defaultDuration = 10;
+  return {
+    value: defaultDuration,
+    source: 'default',
+    warning: `Both durationMinutes (${durationMinutes}) and lessonDuration (${lessonDuration}) were invalid. Using default of ${defaultDuration} minutes.`,
+  };
 }
 
 /**
@@ -119,28 +243,111 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const body: CreatePlanRequest = await req.json();
     const {
       topic,
       numberOfLessons,
       durationMinutes,
       userLevel,
       userId,
-    }: CreatePlanRequest = await req.json();
+      daysPerWeek,
+      lessonDuration,
+    } = body;
+
+    // Debug: Log raw input values before resolution
+    console.log(`🔍 Raw input values:`, {
+      numberOfLessons,
+      numberOfLessonsType: typeof numberOfLessons,
+      durationMinutes,
+      durationMinutesType: typeof durationMinutes,
+      daysPerWeek,
+      lessonDuration,
+    });
+
+    // Resolve values with detailed tracking
+    const lessonCountResult = resolveLessonCount(numberOfLessons, daysPerWeek);
+    const durationResult = resolveDurationMinutes(durationMinutes, lessonDuration);
+
+    const resolvedLessonCount = lessonCountResult.value;
+    const resolvedDurationMinutes = durationResult.value;
+
+    // Log any resolution warnings (indicates potential frontend issues)
+    if (lessonCountResult.warning) {
+      console.warn(`⚠️ Lesson count resolution: ${lessonCountResult.warning}`);
+    }
+    if (durationResult.warning) {
+      console.warn(`⚠️ Duration resolution: ${durationResult.warning}`);
+    }
+
+    // If both values fell back to defaults, return an error instead of silently proceeding
+    if (lessonCountResult.source === 'default' && durationResult.source === 'default') {
+      console.error(`❌ Both numberOfLessons and durationMinutes were invalid`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Invalid request: numberOfLessons (received: ${numberOfLessons}) and durationMinutes (received: ${durationMinutes}) must be valid positive numbers. Check frontend is sending correct values.`,
+          debug: {
+            receivedNumberOfLessons: numberOfLessons,
+            receivedDurationMinutes: durationMinutes,
+            receivedDaysPerWeek: daysPerWeek,
+            receivedLessonDuration: lessonDuration,
+          },
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     console.log(`📋 Creating plan for topic: ${topic}`, {
-      numberOfLessons,
-      durationMinutes,
+      rawNumberOfLessons: numberOfLessons,
+      resolvedLessonCount,
+      lessonCountSource: lessonCountResult.source,
+      rawDurationMinutes: durationMinutes,
+      resolvedDurationMinutes,
+      durationSource: durationResult.source,
       userLevel,
       userId,
+      daysPerWeek,
+      lessonDuration,
       authBypassed: isAuthBypassed,
     });
 
     // Validate required fields
-    if (!topic || !numberOfLessons || !userId) {
+    if (!topic || !userId) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Missing required fields: topic, numberOfLessons, userId",
+          error: "Missing required fields: topic and userId are required",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Additional validation for lesson count
+    if (resolvedLessonCount < LESSON_COUNT_RANGE.min || resolvedLessonCount > LESSON_COUNT_RANGE.max) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `numberOfLessons must be between ${LESSON_COUNT_RANGE.min} and ${LESSON_COUNT_RANGE.max}`,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Additional validation for duration
+    if (resolvedDurationMinutes < DURATION_MINUTES_RANGE.min || resolvedDurationMinutes > DURATION_MINUTES_RANGE.max) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `durationMinutes must be between ${DURATION_MINUTES_RANGE.min} and ${DURATION_MINUTES_RANGE.max}`,
         }),
         {
           status: 400,
@@ -170,7 +377,7 @@ serve(async (req) => {
     // 1. Create the plan
     const startDate = new Date();
     const endDate = new Date();
-    endDate.setDate(endDate.getDate() + numberOfLessons);
+    endDate.setDate(endDate.getDate() + resolvedLessonCount);
 
     const { data: plan, error: planError } = await supabase
       .from("plans")
@@ -178,13 +385,17 @@ serve(async (req) => {
         user_id: userId,
         start_date: startDate.toISOString().split("T")[0],
         end_date: endDate.toISOString().split("T")[0],
-        lessons_goal: numberOfLessons,
-        minutes_goal: numberOfLessons * durationMinutes,
+        lessons_goal: resolvedLessonCount,
+        minutes_goal: resolvedLessonCount * resolvedDurationMinutes,
         status: "active",
         source: "ai_generated",
         meta: {
           topic,
-          lessonDuration: durationMinutes,
+          lessonDuration: resolvedDurationMinutes,
+          lessonDurationMinutes: resolvedDurationMinutes,
+          lessonDurationRange: lessonDuration,
+          lessonCount: resolvedLessonCount,
+          daysPerWeek,
           userLevel,
         },
       })
@@ -200,7 +411,7 @@ serve(async (req) => {
 
     // 2. Create lesson placeholders
     const lessons = [];
-    for (let i = 0; i < numberOfLessons; i++) {
+    for (let i = 0; i < resolvedLessonCount; i++) {
       const lessonDate = new Date();
       lessonDate.setDate(lessonDate.getDate() + i);
 
@@ -213,6 +424,10 @@ serve(async (req) => {
         description: "Generating...",
         status: "pending",
         primary_topic: topic,
+        meta: {
+          duration_minutes: resolvedDurationMinutes,
+          duration_range: lessonDuration,
+        },
       });
     }
 
@@ -245,9 +460,9 @@ serve(async (req) => {
           lessonId: lesson.id,
           topic,
           lessonNumber: lesson.day_index + 1,
-          totalLessons: numberOfLessons,
+          totalLessons: resolvedLessonCount,
           userLevel,
-          durationMinutes,
+          durationMinutes: resolvedDurationMinutes,
           userId,
         }),
       }).catch((err) => {
@@ -262,11 +477,21 @@ serve(async (req) => {
         success: true,
         planId: plan.id,
         lessonCount: createdLessons.length,
+        durationMinutes: resolvedDurationMinutes,
         lessons: createdLessons.map((l) => ({
           id: l.id,
           dayIndex: l.day_index,
           title: l.title,
         })),
+        // Include resolution details for debugging (can be removed in production)
+        _debug: {
+          requestedLessons: numberOfLessons,
+          resolvedLessons: resolvedLessonCount,
+          lessonCountSource: lessonCountResult.source,
+          requestedDuration: durationMinutes,
+          resolvedDuration: resolvedDurationMinutes,
+          durationSource: durationResult.source,
+        },
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -287,4 +512,3 @@ serve(async (req) => {
     );
   }
 });
-

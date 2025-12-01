@@ -79,12 +79,11 @@ export interface GetStreakDataResponse {
 export interface CreatePlanRequest {
   topicPrompt: string;
   daysPerWeek: number;
-  lessonDuration: '8-10' | '10-15' | '15-20';
+  lessonDuration: '5' | '8-10' | '10-15' | '15-20';
   lessonCount: number;
 }
 
 export interface CreatePlanResponse {
   plan: Plan;
 }
-
 

@@ -1,5 +1,6 @@
 import { Lesson } from '@store/types';
 
+
 export const mockLessons: Lesson[] = [
   {
     id: '1',
@@ -46,11 +47,12 @@ export const getMockLessonById = (id: string): Lesson | null => {
 
 /**
  * Generate mock lessons based on plan customizations
+ * Uses the shared LESSON_DURATION_MAP for consistent duration calculation
  */
 export const generateMockLessonsForPlan = (
   topicPrompt: string,
   lessonCount: number,
-  lessonDuration: '8-10' | '10-15' | '15-20'
+  durationMinutes: number
 ): Lesson[] => {
   // Extract topic keywords from prompt for better lesson titles
   const topicKeywords = topicPrompt
@@ -58,18 +60,13 @@ export const generateMockLessonsForPlan = (
     .split(/\s+/)
     .filter(word => word.length > 3)
     .slice(0, 3);
-  
-  const topicName = topicKeywords.length > 0 
+
+  const topicName = topicKeywords.length > 0
     ? topicKeywords[0].charAt(0).toUpperCase() + topicKeywords[0].slice(1)
     : 'Learning';
 
-  // Calculate duration based on range (use midpoint)
-  const durationMap = {
-    '8-10': 9,
-    '10-15': 12,
-    '15-20': 17,
-  };
-  const duration = durationMap[lessonDuration];
+  // Use provided duration
+  const duration = durationMinutes;
 
   // Generate lesson titles based on topic
   const lessonTitles = [
@@ -89,11 +86,11 @@ export const generateMockLessonsForPlan = (
   const categories = ['Science', 'Technology', 'Business', 'Psychology', 'Education', 'Philosophy'];
 
   const lessons: Lesson[] = [];
-  
+
   for (let i = 0; i < lessonCount; i++) {
     const titleIndex = i % lessonTitles.length;
     const difficultyIndex = Math.floor(i / 3) % difficulties.length;
-    
+
     lessons.push({
       id: `lesson-${Date.now()}-${i}`,
       title: lessonTitles[titleIndex],

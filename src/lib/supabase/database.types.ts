@@ -136,6 +136,7 @@ export interface Database {
           primary_topic: string | null;
           tags: string[];
           ai_prompt_used: string | null;
+          meta: Json;
           created_at: string;
           updated_at: string;
         };
@@ -151,6 +152,7 @@ export interface Database {
           primary_topic?: string | null;
           tags?: string[];
           ai_prompt_used?: string | null;
+          meta?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -166,6 +168,7 @@ export interface Database {
           primary_topic?: string | null;
           tags?: string[];
           ai_prompt_used?: string | null;
+          meta?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -352,4 +355,3 @@ export interface Database {
     };
   };
 }
-

@@ -6,12 +6,22 @@ import { useAuthStore } from '@store';
 import { planService } from '@services/api/planService';
 import * as Haptics from 'expo-haptics';
 import { ANONYMOUS_USER_ID } from '@utils/env';
+import {
+  LessonDurationOption,
+  daysPerWeekToLessonCount,
+  DaysPerWeekOption,
+} from '@/types/lessonPlan';
 
 type GeneratePlanScreenProps = {
   // Navigation will handle this
 };
 
-const getLessonDuration = (lessonLength: number): '8-10' | '10-15' | '15-20' => {
+/**
+ * Convert lesson length in minutes to the appropriate duration option
+ * Maps onboarding lessonLength to the LessonDurationOption type
+ */
+const getLessonDuration = (lessonLength: number): LessonDurationOption => {
+  if (lessonLength <= 5) return '5';
   if (lessonLength <= 10) return '8-10';
   if (lessonLength <= 15) return '10-15';
   return '15-20';
@@ -54,10 +64,18 @@ export const GeneratePlanScreen: React.FC<GeneratePlanScreenProps> = () => {
       }
 
       try {
-        const daysPerWeek = onboardingData.daysPerWeek || 5;
+        // Use shared utility for consistent lesson count calculation
+        const daysPerWeek = (onboardingData.daysPerWeek || 5) as DaysPerWeekOption;
         const lessonLength = onboardingData.lessonLength || 10;
         const lessonDuration = getLessonDuration(lessonLength);
-        const lessonCount = daysPerWeek * 2; // 2 lessons per day
+        const lessonCount = daysPerWeekToLessonCount(daysPerWeek);
+
+        console.log('[GeneratePlanScreen] Creating plan:', {
+          daysPerWeek,
+          lessonDuration,
+          lessonCount,
+          lessonLength,
+        });
 
         const plan = await planService.createPlanFromPreferences(userId, {
           topicPrompt: getGoalLabel(onboardingData.goal),

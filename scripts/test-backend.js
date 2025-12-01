@@ -1,25 +1,29 @@
 #!/usr/bin/env node
 /**
- * DayDif Backend Test Script (v2.0)
- * Tests Modal services with Open Notebook-aligned features
+ * DayDif Backend Test Script (v3.0 - Open Notebook Edition)
+ * Tests Modal services with Open Notebook prompts
  * 
  * Features tested:
- * - Two-stage content generation (outline → transcript)
+ * - Open Notebook content generation (outline.jinja → transcript.jinja)
+ * - Episode Profiles with Chatterbox voice mapping
  * - Multi-speaker dialogue generation
  * - Multi-speaker TTS with voice profiles
  * 
  * Usage: node scripts/test-backend.js
  * 
  * Before running, update the URLs below with your actual endpoints
+ * 
+ * Based on: https://github.com/lfnovo/open-notebook
  */
 
 // ============================================================================
 // CONFIGURATION - Update these with your actual URLs
 // ============================================================================
 const CONFIG = {
-  // Your Modal endpoints (from `modal deploy` output)
+  // NEW: Open Notebook Edition Content Service (from `modal deploy open_notebook_service.py`)
   CONTENT_SERVICE_URL: 'https://getdaydif--daydif-content-generate-content.modal.run',
-  CONTENT_OUTLINE_URL: 'https://getdaydif--daydif-content-generate-outline-only.modal.run',
+  
+  // TTS Service (from `modal deploy tts_service.py`)
   TTS_SERVICE_URL: 'https://getdaydif--daydif-tts-generate-tts.modal.run',
   
   // Your Supabase Edge Function (from your project)
@@ -71,46 +75,29 @@ async function testContentHealth() {
   }
 }
 
-async function testOutlineGeneration() {
-  console.log('\n2️⃣  Testing Outline Generation (Stage 1)...');
-  console.log(`   URL: ${CONFIG.CONTENT_OUTLINE_URL}`);
+async function testEpisodeProfile() {
+  console.log('\n2️⃣  Testing Episode Profile Endpoint...');
+  
+  const profileUrl = CONFIG.CONTENT_SERVICE_URL.replace('generate-content', 'get-episode-profile');
+  console.log(`   URL: ${profileUrl}`);
   
   try {
-    const startTime = Date.now();
-    
-    const response = await fetch(CONFIG.CONTENT_OUTLINE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topic: 'Introduction to Effective Note-Taking',
-        lesson_number: 1,
-        total_lessons: 3,
-        user_level: 'beginner',
-        duration_minutes: 8,
-      }),
-    });
-
-    const duration = Date.now() - startTime;
+    const response = await fetch(profileUrl);
     const result = await response.json();
     
-    if (result.success && result.outline) {
-      console.log(`   ✅ SUCCESS (${formatDuration(duration)})`);
-      console.log(`   📝 Title: "${result.outline.title}"`);
-      console.log(`   📊 Segments: ${result.outline.segments?.length || 0}`);
-      
-      // Show segment breakdown
-      if (result.outline.segments) {
-        result.outline.segments.forEach((seg, i) => {
-          console.log(`      ${i + 1}. ${seg.name} (${seg.size})`);
-        });
-      }
-      return { success: true, outline: result.outline };
+    if (result.profile) {
+      console.log(`   ✅ Episode profile retrieved`);
+      console.log(`   🎭 Speakers:`);
+      result.profile.speakers?.forEach(s => {
+        console.log(`      - ${s.name}: ${truncate(s.backstory, 50)}`);
+      });
+      return { success: true, profile: result.profile };
     } else {
-      console.log(`   ❌ FAILED: ${result.error}`);
+      console.log(`   ⚠️  No profile returned`);
       return { success: false };
     }
   } catch (error) {
-    console.log(`   ❌ ERROR: ${error.message}`);
+    console.log(`   ⚠️  Profile check failed: ${error.message}`);
     return { success: false };
   }
 }
@@ -333,7 +320,7 @@ async function main() {
 
   const results = {
     contentHealth: false,
-    outlineGen: false,
+    episodeProfile: false,
     fullContentGen: false,
     ttsHealth: false,
     simpleTts: false,
@@ -342,7 +329,7 @@ async function main() {
 
   // Run tests
   results.contentHealth = await testContentHealth();
-  results.outlineGen = (await testOutlineGeneration()).success;
+  results.episodeProfile = (await testEpisodeProfile()).success;
   results.fullContentGen = (await testFullContentGeneration()).success;
   results.ttsHealth = await testTTSHealth();
   results.simpleTts = await testSimpleTTS();
@@ -354,7 +341,7 @@ async function main() {
   console.log('                        TEST SUMMARY');
   console.log('═══════════════════════════════════════════════════════════════');
   console.log(`   Content Service Health:     ${results.contentHealth ? '✅ PASS' : '❌ FAIL'}`);
-  console.log(`   Outline Generation:         ${results.outlineGen ? '✅ PASS' : '❌ FAIL'}`);
+  console.log(`   Episode Profile:            ${results.episodeProfile ? '✅ PASS' : '❌ FAIL'}`);
   console.log(`   Full Content Generation:    ${results.fullContentGen ? '✅ PASS' : '❌ FAIL'}`);
   console.log(`   TTS Service Health:         ${results.ttsHealth ? '✅ PASS' : '❌ FAIL'}`);
   console.log(`   Simple TTS:                 ${results.simpleTts ? '✅ PASS' : '❌ FAIL'}`);

@@ -133,6 +133,20 @@ Description: {{ segment.description }}
 Size: {{ segment.size }}
 Key Points: {{ segment.key_points | join(", ") }}
 
+**CRITICAL LENGTH REQUIREMENT - THIS IS MANDATORY:**
+You MUST generate A LOT of dialogue to fill {{ target_seconds }} seconds of audio (approximately {{ target_minutes }} minutes).
+- Average speaking rate: 130 words per minute.
+- **ABSOLUTE MINIMUM WORD COUNT: {{ target_words }} words. Aim for {{ target_words_high }} words.**
+- Each speaker turn should be a FULL PARAGRAPH (3-5 sentences minimum). NO short one-liners.
+- If you write less than {{ target_words }} words, the lesson will be too short and UNACCEPTABLE.
+- DIG DEEP into the topic:
+  * Explain concepts thoroughly with multiple examples
+  * Use analogies and real-world scenarios  
+  * Have back-and-forth discussion where speakers build on each other's points
+  * Include "what if" scenarios and edge cases
+  * Summarize key points periodically
+- Do NOT use short responses. Every dialogue turn should be substantive and detailed.
+
 {% if is_final %}
 This is the FINAL segment. Wrap up naturally, thank listeners, and if there are more lessons in the series, tease what's coming next.
 {% endif %}
@@ -140,7 +154,6 @@ This is the FINAL segment. Wrap up naturally, thank listeners, and if there are 
 Guidelines:
 - Create natural, conversational dialogue between {{ speakers | map(attribute='name') | join(' and ') }}
 - Minimum {{ min_turns }} turns of dialogue for this segment
-- Aim for ~{{ target_seconds }} seconds (about {{ target_words }} words); stay within ±15%
 - Match each speaker's personality and expertise
 - Use clear explanations, analogies, and examples
 - Avoid jargon unless explained
@@ -215,10 +228,11 @@ def render_template(template_str: str, **kwargs) -> str:
     return template.render(**kwargs)
 
 
-def calculate_segment_turns(size: str, base_turns: int = 4) -> int:
+def calculate_segment_turns(size: str, base_turns: int = 8) -> int:
     """Calculate minimum dialogue turns based on segment size"""
-    multipliers = {"short": 1, "medium": 2, "long": 3}
-    return base_turns * multipliers.get(size, 2)
+    # Increased base_turns from 6 to 8 to ensure more content
+    multipliers = {"short": 1.5, "medium": 2, "long": 3}
+    return int(base_turns * multipliers.get(size, 2))
 
 
 def _calculate_target_duration_seconds(outline: dict, segment_index: int) -> int:
@@ -227,13 +241,17 @@ def _calculate_target_duration_seconds(outline: dict, segment_index: int) -> int
     segments = outline.get("segments", []) or []
     segment = segments[segment_index] if segment_index < len(segments) else {}
 
-    # Base duration is evenly split across segments with a 45s floor
-    base_seconds = max(45, int((requested_minutes * 60) / max(1, len(segments))))
+    # Base duration is evenly split across segments with a 90s floor (was 45s)
+    # Increased floor to ensure minimum content per segment
+    base_seconds = max(90, int((requested_minutes * 60) / max(1, len(segments))))
 
     # Weight by segment size to keep intros/summaries a bit shorter
     size = segment.get("size", "medium")
-    multipliers = {"short": 0.8, "medium": 1.0, "long": 1.2}
-    return int(base_seconds * multipliers.get(size, 1.0))
+    multipliers = {"short": 0.85, "medium": 1.0, "long": 1.2}
+    result = int(base_seconds * multipliers.get(size, 1.0))
+    
+    print(f"🎯 Segment duration calc: requested={requested_minutes}min, segments={len(segments)}, base={base_seconds}s, size={size}, result={result}s")
+    return result
 
 
 # ============================================================================
@@ -273,8 +291,14 @@ def generate_outline(
         source_context = fetch_source_content(source_urls)
 
     # Calculate number of segments based on duration
-    # ~2-3 min per segment average
-    num_segments = max(3, min(7, duration_minutes // 3))
+    # ~2 min per segment to ensure more content is generated
+    # Minimum 4 segments for lessons 8+ minutes, 3 for shorter
+    if duration_minutes >= 8:
+        num_segments = max(4, min(8, duration_minutes // 2))
+    else:
+        num_segments = max(3, min(6, duration_minutes // 2))
+    
+    print(f"📊 Outline: duration={duration_minutes}min → num_segments={num_segments}")
 
     # Render the prompt
     prompt = render_template(
@@ -299,7 +323,7 @@ def generate_outline(
             {"role": "user", "content": prompt},
         ],
         response_format={"type": "json_object"},
-        max_tokens=2000,
+        max_tokens=2500,  # Increased for more segments
         temperature=0.7,
     )
 
@@ -346,7 +370,17 @@ def generate_segment_transcript(
     target_seconds = target_duration_seconds or _calculate_target_duration_seconds(
         outline, segment_index
     )
-    target_words = int(target_seconds / 60 * 150)  # ~150 words per minute
+    # Updated calculation: We want to generate MORE content to ensure lessons hit target duration.
+    # Using 210 wpm as the target to account for:
+    # - Dialogue formatting consuming tokens without adding audio time
+    # - Natural pauses between speakers
+    # - Buffer for TTS pacing variations
+    # - Tendency of LLMs to under-generate length
+    target_words = int((target_seconds / 60) * 210)
+    target_words_high = int(target_words * 1.25)  # Aim 25% higher for buffer
+    target_minutes = round(target_seconds / 60, 1)
+
+    print(f"📝 Segment {segment_index}: target_seconds={target_seconds}, target_words={target_words}, target_words_high={target_words_high}")
 
     prompt = render_template(
         TRANSCRIPT_PROMPT,
@@ -363,6 +397,8 @@ def generate_segment_transcript(
         min_turns=min_turns,
         target_seconds=target_seconds,
         target_words=target_words,
+        target_words_high=target_words_high,
+        target_minutes=target_minutes,
     )
 
     response = client.chat.completions.create(
@@ -375,7 +411,7 @@ def generate_segment_transcript(
             {"role": "user", "content": prompt},
         ],
         response_format={"type": "json_object"},
-        max_tokens=2000,
+        max_tokens=3500,  # Increased from 2000 to allow for longer transcripts
         temperature=0.8,
     )
 
@@ -463,7 +499,12 @@ def generate_lesson_content(
 
         full_transcript.extend(segment_transcript)
 
+    # Calculate total word count
+    total_words = sum(len(turn.get("dialogue", "").split()) for turn in full_transcript)
+    estimated_audio_minutes = total_words / 130  # ~130 wpm speaking rate
+    
     print(f"✅ Generated {len(full_transcript)} dialogue turns across {len(segments_with_transcript)} segments")
+    print(f"📊 Total words: {total_words}, Estimated audio: {estimated_audio_minutes:.1f} min (target: {duration_minutes} min)")
 
     # Build final result
     result = {

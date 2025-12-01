@@ -27,6 +27,7 @@ export const OnboardingStack: React.FC = () => {
   
   return (
     <Stack.Navigator
+      initialRouteName="Welcome"
       screenOptions={{
         headerShown: false,
         animation: 'fade',

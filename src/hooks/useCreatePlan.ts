@@ -8,15 +8,16 @@ import { ttsService, GenerationStatusResult } from '@services/audio/ttsService';
 import { useLessonsStore } from '@store';
 import { generateMockLessonsForPlan } from '@services/api/mocks/mockLessons';
 import { USE_MOCK_DATA, AUTH_BYPASS_ENABLED, ANONYMOUS_USER_ID } from '@utils/env';
+import {
+  DaysPerWeekOption,
+  LessonDurationOption,
+  CreatePlanFormData,
+  daysPerWeekToLessonCount,
+  lessonDurationToMinutes,
+} from '@/types/lessonPlan';
 
-export type DaysPerWeekOption = 1 | 2 | 3 | 4 | 5;
-export type LessonDurationOption = '5' | '8-10' | '10-15' | '15-20';
-
-export interface CreatePlanFormData {
-  topicPrompt: string;
-  daysPerWeek: DaysPerWeekOption | null;
-  lessonDuration: LessonDurationOption | null;
-}
+// Re-export types for backward compatibility
+export type { DaysPerWeekOption, LessonDurationOption, CreatePlanFormData };
 
 export interface UseCreatePlanReturn {
   formData: CreatePlanFormData;
@@ -30,9 +31,9 @@ export interface UseCreatePlanReturn {
 
 export const useCreatePlan = (): UseCreatePlanReturn => {
   const { user } = useAuthStore();
-  const { 
-    setActivePlanId, 
-    setTodayLesson, 
+  const {
+    setActivePlanId,
+    setTodayLesson,
     setLessons,
     startGeneration,
     completeGeneration,
@@ -49,10 +50,10 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Ref to track submission state to avoid stale closure issues
   const isSubmittingRef = useRef(false);
-  
+
   // Ref to track polling cleanup function
   const pollCleanupRef = useRef<(() => void) | null>(null);
 
@@ -66,33 +67,37 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
     };
   }, []);
 
-  const lessonCount = formData.daysPerWeek 
-    ? (formData.daysPerWeek === 1 ? 1 : formData.daysPerWeek * 2) 
-    : 0;
+  // Use shared utility function for consistent lesson count calculation
+  // Prioritize custom count if available
+  const lessonCount = formData.customLessonCount
+    ? formData.customLessonCount
+    : formData.daysPerWeek
+      ? daysPerWeekToLessonCount(formData.daysPerWeek)
+      : 0;
 
   const isFormValid =
     formData.topicPrompt.trim().length > 0 &&
-    formData.daysPerWeek !== null &&
-    formData.lessonDuration !== null;
+    (formData.daysPerWeek !== null || (formData.customLessonCount !== undefined && formData.customLessonCount > 0)) &&
+    (formData.lessonDuration !== null || (formData.customDuration !== undefined && formData.customDuration > 0));
 
   const createPlan = useCallback(async () => {
     // Compute validity inside the callback to avoid stale closure issues
-    const currentFormValid = 
+    const currentFormValid =
       formData.topicPrompt.trim().length > 0 &&
-      formData.daysPerWeek !== null &&
-      formData.lessonDuration !== null;
-    
-    console.log('createPlan called', { 
-      currentFormValid, 
-      isFormValid, 
-      isSubmitting, 
-      hasUserId: !!user?.id, 
-      formData 
+      (formData.daysPerWeek !== null || (formData.customLessonCount !== undefined && formData.customLessonCount > 0)) &&
+      (formData.lessonDuration !== null || (formData.customDuration !== undefined && formData.customDuration > 0));
+
+    console.log('createPlan called', {
+      currentFormValid,
+      isFormValid,
+      isSubmitting,
+      hasUserId: !!user?.id,
+      formData
     });
-    
+
     if (!currentFormValid) {
       const errorMsg = 'Please fill in all fields before creating a plan';
-      console.warn('createPlan: Form validation failed', { 
+      console.warn('createPlan: Form validation failed', {
         topicPrompt: formData.topicPrompt.trim().length > 0,
         daysPerWeek: formData.daysPerWeek,
         lessonDuration: formData.lessonDuration,
@@ -100,7 +105,7 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
       setError(errorMsg);
       return;
     }
-    
+
     // Use ref to check submission state to avoid stale closure issues
     if (isSubmittingRef.current) {
       console.warn('createPlan: Already submitting (ref check)');
@@ -116,22 +121,28 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
       // Simplified auth: Use real user if available, otherwise use anonymous user ID
       // This allows the app to work without authentication during development
       const userId = user?.id ?? ANONYMOUS_USER_ID;
-      
-      console.log('createPlan: Using userId:', userId, { 
+
+      console.log('createPlan: Using userId:', userId, {
         isAnonymous: userId === ANONYMOUS_USER_ID,
-        authBypass: AUTH_BYPASS_ENABLED, 
-        mockData: USE_MOCK_DATA 
+        authBypass: AUTH_BYPASS_ENABLED,
+        mockData: USE_MOCK_DATA
       });
 
-      // Calculate duration in minutes
-      const durationMinutes =
-        formData.lessonDuration === '5'
-          ? 5
-          : formData.lessonDuration === '8-10'
-          ? 9
-          : formData.lessonDuration === '10-15'
-          ? 12
-          : 17;
+      // Use shared utility for consistent duration calculation
+      // This uses the upper bound of the range for better content quality
+      // Prioritize custom duration if available
+      const durationMinutes = formData.customDuration
+        ? formData.customDuration
+        : formData.lessonDuration
+          ? lessonDurationToMinutes(formData.lessonDuration)
+          : 10; // Default fallback (shouldn't happen due to validation)
+
+      console.log('[useCreatePlan] Computed values:', {
+        daysPerWeek: formData.daysPerWeek,
+        lessonCount,
+        lessonDuration: formData.lessonDuration,
+        durationMinutes,
+      });
 
       let planId: string;
 
@@ -139,14 +150,18 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
       // Fall back to planService for mock mode or if ttsService is unavailable
       if (!USE_MOCK_DATA && ttsService.isAvailable()) {
         console.log('createPlan: Using ttsService for backend integration');
-        
+
         // Use ttsService which creates plan, lessons, and triggers Edge Function
         const result = await ttsService.generatePlan(
           formData.topicPrompt.trim(),
           lessonCount,
           durationMinutes,
-          'beginner',
-          userId
+          'intermediate', // Use intermediate for more depth/length
+          userId,
+          {
+            daysPerWeek: formData.daysPerWeek || undefined,
+            lessonDuration: formData.lessonDuration || undefined,
+          }
         );
 
         if (!result.success || !result.planId) {
@@ -201,7 +216,7 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
 
         if (waitResult.success && waitResult.lesson) {
           console.log('createPlan: First lesson ready:', waitResult.lesson.title);
-          
+
           // Load today's lesson and queue from API
           const todayLesson = await lessonService.getDailyLesson(userId);
           const queue = await lessonService.getLessonQueue(userId);
@@ -236,11 +251,12 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
       } else {
         // Mock mode or ttsService unavailable - use planService
         console.log('createPlan: Using planService (mock mode or ttsService unavailable)');
-        
+
         const plan = await planService.createPlanFromPreferences(userId, {
           topicPrompt: formData.topicPrompt.trim(),
-          daysPerWeek: formData.daysPerWeek!,
-          lessonDuration: formData.lessonDuration!,
+          daysPerWeek: formData.daysPerWeek || undefined,
+          lessonDuration: formData.lessonDuration || undefined,
+          durationMinutes,
           lessonCount,
         });
 
@@ -248,23 +264,23 @@ export const useCreatePlan = (): UseCreatePlanReturn => {
         setActivePlanId(plan.id);
         setActivePlan(plan);
 
-        // Generate mock lessons immediately
+        // Generate mock lessons immediately using the shared types
         const mockLessons = generateMockLessonsForPlan(
           formData.topicPrompt.trim(),
           lessonCount,
-          formData.lessonDuration!
+          durationMinutes
         );
-        
+
         // Set today's lesson (first lesson)
         const todayLesson = mockLessons[0];
         setDailyLesson(todayLesson);
         setTodayLesson(todayLesson);
         setPlansTodayLesson(todayLesson);
-        
+
         // Set queue (remaining lessons)
         clearQueue();
         mockLessons.slice(1).forEach(lesson => addToQueue(lesson));
-        
+
         // Set lessons array
         setLessons(mockLessons);
 

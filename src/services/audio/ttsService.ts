@@ -46,6 +46,13 @@ export interface LessonGenerationResponse {
   error?: string;
 }
 
+export type LessonDurationRange = '5' | '8-10' | '10-15' | '15-20';
+
+export interface PlanGenerationOptions {
+  daysPerWeek?: number;
+  lessonDuration?: LessonDurationRange;
+}
+
 export interface PlanGenerationResponse {
   success: boolean;
   planId?: string;
@@ -92,7 +99,8 @@ export interface TTSService {
     numberOfLessons: number,
     durationMinutes: number,
     userLevel: string,
-    userId: string
+    userId: string,
+    options?: PlanGenerationOptions
   ): Promise<PlanGenerationResponse>;
 
   // Single lesson generation
@@ -134,10 +142,12 @@ export interface TTSService {
 
 class TTSServiceImpl implements TTSService {
   private edgeFunctionUrl: string;
+  private supabaseAnonKey: string;
 
   constructor() {
     const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
     this.edgeFunctionUrl = `${supabaseUrl}/functions/v1`;
+    this.supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
   }
 
   /**
@@ -150,19 +160,34 @@ class TTSServiceImpl implements TTSService {
     numberOfLessons: number,
     durationMinutes: number,
     userLevel: string,
-    userId: string
+    userId: string,
+    options?: PlanGenerationOptions
   ): Promise<PlanGenerationResponse> {
     try {
       // Use provided userId or fall back to anonymous user ID
       const effectiveUserId = userId || ANONYMOUS_USER_ID;
       
       console.log('[TTSService] Creating plan via edge function:', {
-        topic,
+        topic: topic.substring(0, 50) + (topic.length > 50 ? '...' : ''),
         numberOfLessons,
+        numberOfLessonsType: typeof numberOfLessons,
         durationMinutes,
+        durationMinutesType: typeof durationMinutes,
         isAnonymous: isAnonymousUserId(effectiveUserId),
         userId: effectiveUserId,
+        daysPerWeek: options?.daysPerWeek,
+        lessonDuration: options?.lessonDuration,
       });
+
+      // Validate values before sending to ensure they're correct
+      if (typeof numberOfLessons !== 'number' || numberOfLessons <= 0) {
+        console.error('[TTSService] Invalid numberOfLessons:', numberOfLessons);
+        return { success: false, error: `Invalid numberOfLessons: ${numberOfLessons}. Must be a positive number.` };
+      }
+      if (typeof durationMinutes !== 'number' || durationMinutes <= 0) {
+        console.error('[TTSService] Invalid durationMinutes:', durationMinutes);
+        return { success: false, error: `Invalid durationMinutes: ${durationMinutes}. Must be a positive number.` };
+      }
 
       // Handle mock mode - create mock plan without backend
       if (USE_MOCK_DATA) {
@@ -177,6 +202,8 @@ class TTSServiceImpl implements TTSService {
       // 3. Triggering lesson generation for each lesson
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        'apikey': this.supabaseAnonKey, // Required for Supabase Edge Function access
+        'Authorization': `Bearer ${this.supabaseAnonKey}`, // Required for Supabase Edge Function auth
         'X-Auth-Bypass': 'true', // Always use auth bypass for plan creation
       };
 
@@ -189,6 +216,8 @@ class TTSServiceImpl implements TTSService {
           durationMinutes,
           userLevel,
           userId: effectiveUserId,
+          daysPerWeek: options?.daysPerWeek,
+          lessonDuration: options?.lessonDuration,
         }),
       });
 
@@ -204,14 +233,32 @@ class TTSServiceImpl implements TTSService {
       }
 
       const result = await response.json();
-      console.log('[TTSService] create-plan response:', result);
+      console.log('[TTSService] create-plan response:', {
+        success: result.success,
+        planId: result.planId,
+        lessonCount: result.lessonCount,
+        durationMinutes: result.durationMinutes,
+        error: result.error,
+        _debug: result._debug,
+      });
 
       if (!result.success) {
         console.error('[TTSService] create-plan failed:', result);
         throw new Error(result.error || 'Failed to create plan (no error details)');
       }
 
-      console.log('[TTSService] Plan created:', result.planId);
+      // Log if the backend used different values than we sent
+      if (result._debug) {
+        const debug = result._debug;
+        if (debug.requestedLessons !== debug.resolvedLessons) {
+          console.warn(`[TTSService] Lesson count mismatch: requested ${debug.requestedLessons}, resolved ${debug.resolvedLessons} (source: ${debug.lessonCountSource})`);
+        }
+        if (debug.requestedDuration !== debug.resolvedDuration) {
+          console.warn(`[TTSService] Duration mismatch: requested ${debug.requestedDuration}, resolved ${debug.resolvedDuration} (source: ${debug.durationSource})`);
+        }
+      }
+
+      console.log('[TTSService] Plan created:', result.planId, `(${result.lessonCount} lessons, ${result.durationMinutes} min each)`);
       return { success: true, planId: result.planId };
     } catch (error) {
       console.error('[TTSService] generatePlan error:', error);
@@ -259,6 +306,7 @@ class TTSServiceImpl implements TTSService {
       // Build headers - use auth bypass for anonymous users, or real auth for logged-in users
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        'apikey': this.supabaseAnonKey, // Required for Supabase Edge Function access
       };
 
       if (isAnonymousUserId(effectiveUserId)) {

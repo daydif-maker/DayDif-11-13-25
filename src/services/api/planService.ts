@@ -25,6 +25,29 @@ type AIJobInsert = Database['public']['Tables']['ai_jobs']['Insert'];
 // Helper to convert PlanRow to Plan domain object
 const mapPlanToDomain = (plan: PlanRow, lessons?: PlanLessonRow[]): Plan => {
   const meta = (plan.meta as Record<string, unknown>) || {};
+
+  const numericLessonDuration =
+    typeof meta.lessonDuration === 'number'
+      ? meta.lessonDuration
+      : typeof meta.lessonDurationMinutes === 'number'
+        ? meta.lessonDurationMinutes
+        : undefined;
+
+  const lessonDurationRange =
+    (typeof meta.lessonDurationRange === 'string'
+      ? meta.lessonDurationRange
+      : undefined) ||
+    (typeof meta.lessonDuration === 'string' ? meta.lessonDuration : undefined) ||
+    (numericLessonDuration !== undefined
+      ? numericLessonDuration <= 6
+        ? '5'
+        : numericLessonDuration <= 10
+          ? '8-10'
+          : numericLessonDuration <= 15
+            ? '10-15'
+            : '15-20'
+      : undefined);
+
   return {
     id: plan.id,
     name: (meta.name as string) || `Plan ${plan.id.substring(0, 8)}`,
@@ -45,8 +68,14 @@ const mapPlanToDomain = (plan: PlanRow, lessons?: PlanLessonRow[]): Plan => {
     isActive: plan.status === 'active',
     topicPrompt: meta.topicPrompt as string | undefined,
     daysPerWeek: meta.daysPerWeek as number | undefined,
-    lessonDuration: meta.lessonDuration as '8-10' | '10-15' | '15-20' | undefined,
-    lessonCount: meta.lessonCount as number | undefined,
+    lessonDuration: lessonDurationRange as
+      | '5'
+      | '8-10'
+      | '10-15'
+      | '15-20'
+      | undefined,
+    lessonCount:
+      (meta.lessonCount as number | undefined) || plan.lessons_goal || undefined,
   };
 };
 
@@ -134,7 +163,7 @@ export const planService = {
       if (!activePlan) return null;
 
       const today = date || new Date().toISOString().split('T')[0];
-      
+
       // Query lessons filtering by the active plan and completed status
       const { data, error } = await supabase
         .from('plan_lessons')
@@ -142,7 +171,7 @@ export const planService = {
         .eq('user_id', userId)
         .eq('plan_id', activePlan.id)
         .eq('date', today)
-        .eq('status', 'completed')
+        // .eq('status', 'completed') // Don't filter by completed, we want the lesson assigned for today
         .order('day_index', { ascending: true })
         .limit(1)
         .single();
@@ -188,8 +217,9 @@ export const planService = {
     userId: string,
     preferences: {
       topicPrompt: string;
-      daysPerWeek: number;
-      lessonDuration: '5' | '8-10' | '10-15' | '15-20';
+      daysPerWeek?: number;
+      lessonDuration?: '5' | '8-10' | '10-15' | '15-20';
+      durationMinutes?: number;
       lessonCount: number;
     }
   ): Promise<Plan> {
@@ -206,7 +236,7 @@ export const planService = {
         name: `Learning Plan: ${preferences.topicPrompt.substring(0, 30)}...`,
         goal: {
           targetLessons: preferences.lessonCount,
-          targetMinutes: preferences.lessonCount * (durationMinutesMap[preferences.lessonDuration] || 10),
+          targetMinutes: preferences.lessonCount * (preferences.durationMinutes || (preferences.lessonDuration ? durationMinutesMap[preferences.lessonDuration] : 10)),
           currentLessons: 0,
           currentMinutes: 0,
           weekStart: new Date().toISOString().split('T')[0],
@@ -248,7 +278,7 @@ export const planService = {
         end_date: endDate.toISOString().split('T')[0],
         status: 'active',
         lessons_goal: preferences.lessonCount,
-        minutes_goal: preferences.lessonCount * (durationMinutesMap[preferences.lessonDuration] || 10),
+        minutes_goal: preferences.lessonCount * (preferences.durationMinutes || (preferences.lessonDuration ? durationMinutesMap[preferences.lessonDuration] : 10)),
         source: 'user_created',
         meta: {
           topicPrompt: preferences.topicPrompt,

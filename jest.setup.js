@@ -1,5 +1,11 @@
 // Jest setup file
-import '@testing-library/jest-native/extend-expect';
+// Note: @testing-library/jest-native provides additional matchers for React Native testing
+// If the module is not installed, tests will still run but without the custom matchers
+try {
+  require('@testing-library/jest-native/extend-expect');
+} catch (e) {
+  console.warn('jest-native extend-expect not available, continuing without custom matchers');
+}
 
 // Mock React Native modules
 jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');

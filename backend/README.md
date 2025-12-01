@@ -2,7 +2,7 @@
 
 Backend services for AI-powered lesson generation and text-to-speech, running on [Modal](https://modal.com).
 
-**Architecture inspired by [Open Notebook](https://github.com/lfnovo/open-notebook)** - an open-source implementation of NotebookLM with podcast generation capabilities.
+**Architecture based on [Open Notebook](https://github.com/lfnovo/open-notebook)** - an open-source implementation of NotebookLM with podcast generation capabilities.
 
 ## Services Overview
 
@@ -12,11 +12,11 @@ Backend services for AI-powered lesson generation and text-to-speech, running on
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  ┌─────────────────────────────────────────────────────────────────┐│
-│  │               Content Service (content_service.py)               ││
-│  │  • Two-stage generation (Open Notebook style)                   ││
-│  │  • Stage 1: Outline with segments                               ││
-│  │  • Stage 2: Multi-speaker dialogue per segment                  ││
-│  │  • Source ingestion: YouTube, Web                               ││
+│  │         Content Service (open_notebook_service.py) [NEW]         ││
+│  │  • Open Notebook prompts (outline.jinja, transcript.jinja)      ││
+│  │  • Two-stage generation: Outline → Segment Transcripts          ││
+│  │  • Episode Profiles with Chatterbox voice mapping               ││
+│  │  • Multi-speaker dialogue (Alex + Sam)                          ││
 │  └─────────────────────────────────────────────────────────────────┘│
 │                              │                                       │
 │                              ▼                                       │
@@ -28,6 +28,7 @@ Backend services for AI-powered lesson generation and text-to-speech, running on
 │  │  • Direct upload to Supabase Storage                            ││
 │  └─────────────────────────────────────────────────────────────────┘│
 │                                                                      │
+│  Legacy: content_service.py (deprecated, kept for rollback)         │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -54,11 +55,19 @@ modal secret create supabase-secret \
 ```bash
 cd backend/modal
 
-# Deploy Content Service
-modal deploy content_service.py
+# Deploy Content Service (Open Notebook Edition)
+modal deploy open_notebook_service.py
 
 # Deploy TTS Service  
 modal deploy tts_service.py
+```
+
+### Update Supabase Secrets
+
+After deploying, update the CONTENT_SERVICE_URL in Supabase to point to the new service:
+
+```
+CONTENT_SERVICE_URL=https://your-username--daydif-content-generate-content.modal.run
 ```
 
 ### Test Services
@@ -68,16 +77,21 @@ modal deploy tts_service.py
 node scripts/test-backend.js
 ```
 
-## Content Service
+## Content Service (Open Notebook Edition)
 
-### Features (Open Notebook Aligned)
+Uses prompts ported from [Open Notebook](https://github.com/lfnovo/open-notebook/tree/main/prompts/podcast):
+- `outline.jinja` - Generates episode outline with segments
+- `transcript.jinja` - Generates multi-speaker dialogue per segment
+
+### Features
 
 | Feature | Description |
 |---------|-------------|
-| Two-stage generation | Outline → Transcript pipeline |
-| Multi-speaker dialogue | Alex (learner) + Sam (expert) |
-| Source ingestion | YouTube transcripts, web articles |
-| Segment structure | Intro, Content segments, Summary |
+| Open Notebook Prompts | Proven prompt engineering from Open Notebook |
+| Two-stage generation | Stage 1: Outline → Stage 2: Transcript per segment |
+| Episode Profiles | Speaker personas with Chatterbox voice mapping |
+| Multi-speaker dialogue | Alex (curious learner) + Sam (expert educator) |
+| Segment sizing | short/medium/long affects word count per segment |
 
 ### Endpoints
 
@@ -218,6 +232,7 @@ modal secret update openai-secret OPENAI_API_KEY=sk-new-key
 
 ## References
 
-- [Open Notebook](https://github.com/lfnovo/open-notebook) - Architecture inspiration
+- [Open Notebook](https://github.com/lfnovo/open-notebook) - Prompts and architecture
+- [Open Notebook Podcast Prompts](https://github.com/lfnovo/open-notebook/tree/main/prompts/podcast) - Source templates
 - [Modal Docs](https://modal.com/docs) - Deployment platform
 - [Chatterbox TTS](https://github.com/resemble-ai/chatterbox) - TTS model
